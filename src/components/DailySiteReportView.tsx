@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useCasabuild } from '../context/CasabuildContext';
 import { DailySiteReport } from '../types';
+import { exportToExcel } from '../utils/excelExport';
 import {
   ClipboardCheck,
   Plus,
@@ -17,7 +18,8 @@ import {
   Filter,
   Layers,
   ArrowRight,
-  HardHat
+  HardHat,
+  FileSpreadsheet
 } from 'lucide-react';
 
 export const DailySiteReportView: React.FC = () => {
@@ -79,6 +81,40 @@ export const DailySiteReportView: React.FC = () => {
     setTomorrowPlan('');
   };
 
+  const handleExportDsr = () => {
+    const headers = [
+      'Report ID',
+      'Log Date',
+      'Project Name',
+      'Supervisor / Engineer',
+      'Weather Condition',
+      'Site Temperature',
+      'Workforce Count',
+      'Overall Progress (%)',
+      "Today's Executed Tasks",
+      'Site Issues / Snags',
+      'Issue Severity Level',
+      "Tomorrow's Work Plan",
+      'Attached Photos Count'
+    ];
+    const rows = dailyReports.map(r => [
+      r.id,
+      r.date,
+      r.projectName,
+      r.supervisorName,
+      r.weather,
+      r.temperature,
+      r.workersCount,
+      `${r.progressPercentage}%`,
+      r.todaysWork,
+      r.issues || 'None',
+      r.issueSeverity || 'None',
+      r.tomorrowPlan || 'N/A',
+      r.photos.length
+    ]);
+    exportToExcel('casabuild_daily_site_reports_dsr', headers, rows);
+  };
+
   const weatherIcons: Record<string, any> = {
     Sunny: Sun,
     Rainy: CloudRain,
@@ -105,17 +141,29 @@ export const DailySiteReportView: React.FC = () => {
           </p>
         </div>
 
-        <button
-          id="dsr-new-report-btn"
-          onClick={() => {
-            setProgressPercent(activeProject.overallProgress);
-            setShowNewReportModal(true);
-          }}
-          className="flex items-center space-x-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 px-4 py-2.5 text-xs font-semibold text-zinc-950 shadow-lg shadow-amber-500/20 active:scale-95 transition"
-        >
-          <Plus className="h-4 w-4 stroke-[2.5]" />
-          <span>New Daily Report</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            id="dsr-export-excel-btn"
+            onClick={handleExportDsr}
+            className="flex items-center space-x-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3.5 py-2.5 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20 transition"
+            title="Export full DSR logbook to Microsoft Excel / CSV"
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            <span>Export DSR Log</span>
+          </button>
+
+          <button
+            id="dsr-new-report-btn"
+            onClick={() => {
+              setProgressPercent(activeProject.overallProgress);
+              setShowNewReportModal(true);
+            }}
+            className="flex items-center space-x-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 px-4 py-2.5 text-xs font-semibold text-zinc-950 shadow-lg shadow-amber-500/20 active:scale-95 transition"
+          >
+            <Plus className="h-4 w-4 stroke-[2.5]" />
+            <span>New Daily Report</span>
+          </button>
+        </div>
       </div>
 
       {/* Reports Feed & Detail Modal */}

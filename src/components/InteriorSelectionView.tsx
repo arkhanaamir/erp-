@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useCasabuild } from '../context/CasabuildContext';
 import { InteriorSelectionItem } from '../types';
+import { exportToExcel } from '../utils/excelExport';
 import {
   Palette,
   Plus,
@@ -11,7 +12,8 @@ import {
   Image,
   Layers,
   Sparkles,
-  ExternalLink
+  ExternalLink,
+  FileSpreadsheet
 } from 'lucide-react';
 
 export const InteriorSelectionView: React.FC = () => {
@@ -25,6 +27,28 @@ export const InteriorSelectionView: React.FC = () => {
   const filteredItems = interiorSelections.filter(item => {
     return categoryFilter === 'All' || item.category === categoryFilter;
   });
+
+  const handleExportFinishes = () => {
+    const headers = [
+      'Selection Item ID',
+      'Category',
+      'Finish / Fixture Name',
+      'Brand & Specifications',
+      'Selected Option / Shade Code',
+      'Approval Status',
+      'Client Feedback / Notes'
+    ];
+    const rows = interiorSelections.map(item => [
+      item.id,
+      item.category,
+      item.name,
+      item.specifications,
+      item.selectedOption,
+      item.status,
+      item.clientFeedback || 'No feedback'
+    ]);
+    exportToExcel(`casabuild_interior_finishes_schedule`, headers, rows);
+  };
 
   const handleStatusChange = (id: string, newStatus: 'Pending' | 'Approved' | 'Revision Requested' | 'Ordered') => {
     updateInteriorSelection(id, {
@@ -51,7 +75,16 @@ export const InteriorSelectionView: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={handleExportFinishes}
+            className="flex items-center space-x-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20 transition"
+            title="Export full finishes schedule to Excel"
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            <span>Export Finishes (Excel)</span>
+          </button>
+
           <span className="rounded-full bg-emerald-500/15 text-emerald-300 px-3 py-1 text-xs font-semibold border border-emerald-500/30">
             {interiorSelections.filter(i => i.status === 'Approved').length} / {interiorSelections.length} Approved
           </span>

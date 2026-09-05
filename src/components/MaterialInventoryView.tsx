@@ -12,8 +12,10 @@ import {
   IndianRupee,
   Search,
   Filter,
-  FileText
+  FileText,
+  FileSpreadsheet
 } from 'lucide-react';
+import { exportToExcel } from '../utils/excelExport';
 
 export const MaterialInventoryView: React.FC = () => {
   const {
@@ -98,6 +100,34 @@ export const MaterialInventoryView: React.FC = () => {
     setMatName('');
   };
 
+  const handleExportMaterials = () => {
+    const headers = [
+      'Item ID',
+      'Material Name',
+      'Category',
+      'Current Stock Balance',
+      'Unit of Measurement',
+      'Min Alert Threshold',
+      'Stock Status',
+      'Unit Cost (INR)',
+      'Total Valuation (INR)',
+      'Primary Supplier'
+    ];
+    const rows = materials.map(m => [
+      m.id,
+      m.name,
+      m.category,
+      m.currentBalance,
+      m.unit,
+      m.minThreshold,
+      m.status,
+      m.unitCost,
+      m.currentBalance * m.unitCost,
+      m.supplier || ''
+    ]);
+    exportToExcel('casabuild_material_inventory', headers, rows);
+  };
+
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}
@@ -117,6 +147,15 @@ export const MaterialInventoryView: React.FC = () => {
         </div>
 
         <div className="flex items-center space-x-2.5">
+          <button
+            id="inventory-export-excel-btn"
+            onClick={handleExportMaterials}
+            className="flex items-center space-x-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3.5 py-2 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20 transition"
+            title="Export full inventory ledger to Microsoft Excel / CSV"
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            <span>Export Excel</span>
+          </button>
           <button
             id="inventory-receive-btn"
             onClick={() => setShowInwardModal(true)}

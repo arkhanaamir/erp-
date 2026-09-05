@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useCasabuild } from '../context/CasabuildContext';
 import { UserRole, UserProfile } from '../types';
+import { exportToExcel } from '../utils/excelExport';
 import {
   X,
   User,
@@ -23,7 +24,13 @@ import {
   Lock,
   Clock,
   Building,
-  KeyRound
+  KeyRound,
+  Download,
+  Edit3,
+  UserX,
+  ShieldAlert,
+  FileSpreadsheet,
+  Check
 } from 'lucide-react';
 
 interface UserProfileModalProps {
@@ -39,6 +46,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
     updateUserProfile,
     addUser,
     deleteUser,
+    toggleUserDisabled,
     projects
   } = useCasabuild();
 
@@ -56,6 +64,19 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
   const [newUserRole, setNewUserRole] = useState<UserRole>('supervisor');
   const [newUserDesignation, setNewUserDesignation] = useState('');
   const [newUserPhone, setNewUserPhone] = useState('');
+
+  // Edit Employee Profile state (Owner Exclusive)
+  const [editingTargetUser, setEditingTargetUser] = useState<UserProfile | null>(null);
+  const [targetName, setTargetName] = useState('');
+  const [targetEmail, setTargetEmail] = useState('');
+  const [targetPhone, setTargetPhone] = useState('');
+  const [targetDesignation, setTargetDesignation] = useState('');
+  const [targetCompany, setTargetCompany] = useState('');
+  const [targetRole, setTargetRole] = useState<UserRole>('supervisor');
+  const [targetLicense, setTargetLicense] = useState('');
+  const [targetPassword, setTargetPassword] = useState('');
+
+  const isOwner = currentUser?.role === 'owner' || currentUser?.email.trim().toLowerCase() === 'ar.khanaamir@gmail.com';
 
   if (!isOpen || !currentUser) return null;
 
@@ -120,6 +141,70 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
       companyOrAffiliation: editCompany
     });
     setIsEditing(false);
+  };
+
+  const handleStartEditTargetUser = (u: UserProfile) => {
+    setEditingTargetUser(u);
+    setTargetName(u.name);
+    setTargetEmail(u.email);
+    setTargetPhone(u.phone || '');
+    setTargetDesignation(u.designation || '');
+    setTargetCompany(u.companyOrAffiliation || '');
+    setTargetRole(u.role);
+    setTargetLicense(u.licenseNumber || '');
+    setTargetPassword(u.password || '');
+  };
+
+  const handleSaveTargetUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTargetUser) return;
+
+    // Safety: only ar.khanaamir@gmail.com can be owner
+    let safeRole = targetRole;
+    if (safeRole === 'owner' && targetEmail.trim().toLowerCase() !== 'ar.khanaamir@gmail.com') {
+      safeRole = 'architect';
+    }
+
+    updateUserProfile(editingTargetUser.id, {
+      name: targetName.trim(),
+      email: targetEmail.trim(),
+      phone: targetPhone.trim(),
+      designation: targetDesignation.trim(),
+      companyOrAffiliation: targetCompany.trim(),
+      role: safeRole,
+      licenseNumber: targetLicense.trim(),
+      password: targetPassword ? targetPassword.trim() : editingTargetUser.password
+    });
+
+    setEditingTargetUser(null);
+  };
+
+  const handleExportUsers = () => {
+    const headers = [
+      'Staff / User ID',
+      'Full Name',
+      'Official Email',
+      'Predefined System Role',
+      'Designation & Title',
+      'Contact Phone Number',
+      'Affiliated Organization / Firm',
+      'Registration / License ID',
+      'Profile Account Status',
+      'Last Login Timestamp'
+    ];
+    const rows = users.map(u => [
+      u.id,
+      u.name,
+      u.email,
+      u.role.toUpperCase(),
+      u.designation || '',
+      u.phone || '',
+      u.companyOrAffiliation || '',
+      u.licenseNumber || '',
+      u.disabled ? 'Disabled' : (u.status || 'Active'),
+      u.lastLogin || 'Never'
+    ]);
+    exportToExcel('casabuild_employee_profiles', headers, rows);
   };
 
   const handleAddUser = (e: React.FormEvent) => {
@@ -246,6 +331,16 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
                 </div>
               </div>
 
+              {!isOwner && (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 flex items-center space-x-3 text-xs text-amber-200">
+                  <ShieldAlert className="h-5 w-5 shrink-0 text-amber-400" />
+                  <div className="leading-relaxed">
+                    <span className="font-bold text-amber-300">Managed Enterprise Profile: </span>
+                    Contact details, phone numbers, and profile settings are centrally protected and can only be modified or deleted by Managing Owner <span className="font-semibold text-white">Ar. Aamir Khan (ar.khanaamir@gmail.com)</span>.
+                  </div>
+                </div>
+              )}
+
               {/* Profile Details Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-3.5 space-y-1">
@@ -330,7 +425,12 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
 
               {/* Edit Controls */}
               <div className="flex items-center justify-between pt-2">
-                {isEditing ? (
+                {!isOwner ? (
+                  <div className="flex items-center space-x-2 text-zinc-400 text-xs px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800">
+                    <Lock className="h-3.5 w-3.5 text-amber-400" />
+                    <span>Profile editing restricted to Managing Owner</span>
+                  </div>
+                ) : isEditing ? (
                   <div className="flex items-center space-x-2">
                     <button
                       onClick={handleSaveProfile}
@@ -348,9 +448,10 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
                 ) : (
                   <button
                     onClick={() => setIsEditing(true)}
-                    className="px-3 py-1.5 rounded-lg border border-zinc-700 bg-zinc-800 text-xs text-zinc-200 hover:bg-zinc-700 transition"
+                    className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 text-xs text-amber-300 hover:bg-amber-500/20 transition font-medium"
                   >
-                    Edit Contact Details
+                    <Edit3 className="h-3.5 w-3.5" />
+                    <span>Edit Contact Details</span>
                   </button>
                 )}
 
@@ -418,22 +519,178 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
           {/* TAB 3: Team Directory (Owner Exclusive) */}
           {activeTab === 'team' && currentUser.role === 'owner' && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-zinc-900/60 p-4 rounded-xl border border-zinc-800">
                 <div>
-                  <h4 className="text-xs font-bold text-zinc-200">System User Directory</h4>
-                  <p className="text-[11px] text-zinc-400">
-                    Manage registered organization members, credentials and predefined roles.
+                  <div className="flex items-center space-x-2">
+                    <h4 className="text-sm font-bold text-zinc-100">Enterprise Personnel & Staff Directory</h4>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono font-medium border border-amber-500/30">
+                      {users.length} Registered
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-400 mt-1">
+                    Master governance portal. Edit employee contact details, toggle account disabling, or manage role permissions.
                   </p>
                 </div>
 
-                <button
-                  onClick={() => setShowAddUserModal(true)}
-                  className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-amber-500 text-zinc-950 text-xs font-bold hover:bg-amber-400 transition"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  <span>Provision New User</span>
-                </button>
+                <div className="flex items-center space-x-2 shrink-0">
+                  <button
+                    id="export-users-excel-btn"
+                    onClick={handleExportUsers}
+                    className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 text-emerald-300 text-xs font-semibold hover:bg-emerald-500/20 transition"
+                    title="Export complete staff & partner directory to Microsoft Excel / CSV"
+                  >
+                    <FileSpreadsheet className="h-3.5 w-3.5" />
+                    <span>Export Excel</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowAddUserModal(true);
+                      setEditingTargetUser(null);
+                    }}
+                    className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-amber-500 text-zinc-950 text-xs font-bold hover:bg-amber-400 transition"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>Provision User</span>
+                  </button>
+                </div>
               </div>
+
+              {/* Edit Existing User Modal Inline */}
+              {editingTargetUser && (
+                <form onSubmit={handleSaveTargetUser} className="p-4 rounded-xl border border-amber-500/40 bg-zinc-900/95 space-y-4 shadow-xl">
+                  <div className="flex items-center justify-between border-b border-zinc-800 pb-2.5">
+                    <div className="flex items-center space-x-2">
+                      <Edit3 className="h-4 w-4 text-amber-400" />
+                      <span className="text-xs font-bold text-amber-300">
+                        Edit Profile & Contact Details: {editingTargetUser.name}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setEditingTargetUser(null)}
+                      className="text-zinc-500 hover:text-zinc-300"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] text-zinc-400 mb-1">Full Legal Name</label>
+                      <input
+                        type="text"
+                        value={targetName}
+                        onChange={e => setTargetName(e.target.value)}
+                        className="w-full bg-zinc-800 border border-zinc-700 rounded px-2.5 py-1.5 text-xs text-zinc-100"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] text-zinc-400 mb-1">Official Email Address</label>
+                      <input
+                        type="email"
+                        value={targetEmail}
+                        onChange={e => setTargetEmail(e.target.value)}
+                        className="w-full bg-zinc-800 border border-zinc-700 rounded px-2.5 py-1.5 text-xs text-zinc-100"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] text-zinc-400 mb-1">
+                        Contact Phone / Mobile <span className="text-amber-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={targetPhone}
+                        onChange={e => setTargetPhone(e.target.value)}
+                        placeholder="+91 98000 00000"
+                        className="w-full bg-zinc-800 border border-zinc-700 rounded px-2.5 py-1.5 text-xs text-zinc-100 font-mono"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] text-zinc-400 mb-1">Designation & Title</label>
+                      <input
+                        type="text"
+                        value={targetDesignation}
+                        onChange={e => setTargetDesignation(e.target.value)}
+                        className="w-full bg-zinc-800 border border-zinc-700 rounded px-2.5 py-1.5 text-xs text-zinc-100"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-[11px] text-zinc-400 mb-1">Predefined ERP Role</label>
+                      <select
+                        value={targetRole}
+                        onChange={e => setTargetRole(e.target.value as UserRole)}
+                        className="w-full bg-zinc-800 border border-zinc-700 rounded px-2.5 py-1.5 text-xs text-zinc-100"
+                      >
+                        <option value="architect">Architect & Design</option>
+                        <option value="supervisor">Site Supervisor</option>
+                        <option value="accountant">Accountant / Finance</option>
+                        <option value="contractor">Civil Contractor</option>
+                        <option value="client">Client</option>
+                        {targetEmail.trim().toLowerCase() === 'ar.khanaamir@gmail.com' && (
+                          <option value="owner">Managing Owner</option>
+                        )}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] text-zinc-400 mb-1">Firm / Affiliation</label>
+                      <input
+                        type="text"
+                        value={targetCompany}
+                        onChange={e => setTargetCompany(e.target.value)}
+                        className="w-full bg-zinc-800 border border-zinc-700 rounded px-2.5 py-1.5 text-xs text-zinc-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] text-zinc-400 mb-1">License / Reg ID</label>
+                      <input
+                        type="text"
+                        value={targetLicense}
+                        onChange={e => setTargetLicense(e.target.value)}
+                        className="w-full bg-zinc-800 border border-zinc-700 rounded px-2.5 py-1.5 text-xs text-zinc-100 font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] text-zinc-400 mb-1">Update Password</label>
+                      <input
+                        type="text"
+                        value={targetPassword}
+                        onChange={e => setTargetPassword(e.target.value)}
+                        placeholder="Leave as is or enter new password"
+                        className="w-full bg-zinc-800 border border-zinc-700 rounded px-2.5 py-1.5 text-xs text-zinc-100"
+                      />
+                    </div>
+                    <div className="flex items-end justify-end space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => setEditingTargetUser(null)}
+                        className="px-3 py-1.5 text-xs text-zinc-400 hover:text-zinc-200"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-4 py-1.5 rounded-lg bg-amber-500 text-zinc-950 text-xs font-bold hover:bg-amber-400 transition shadow"
+                      >
+                        Save Profile Updates
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              )}
 
               {/* Add User Modal Inline */}
               {showAddUserModal && (
@@ -480,15 +737,38 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
                       <select
                         value={newUserRole}
                         onChange={e => setNewUserRole(e.target.value as UserRole)}
-                        className="w-full bg-zinc-800 border border-zinc-700 rounded px-2 py-1.5 text-xs text-zinc-100"
+                        className="w-full bg-zinc-800 border border-zinc-700 rounded px-2.5 py-1.5 text-xs text-zinc-100"
                       >
                         <option value="architect">Architect & Design</option>
                         <option value="supervisor">Site Supervisor</option>
                         <option value="accountant">Accountant / Finance</option>
                         <option value="contractor">Civil Contractor</option>
                         <option value="client">Client</option>
-                        <option value="owner">Executive Owner</option>
                       </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] text-zinc-400 mb-1">Contact Phone</label>
+                      <input
+                        type="text"
+                        value={newUserPhone}
+                        onChange={e => setNewUserPhone(e.target.value)}
+                        placeholder="+91 98000 00000"
+                        className="w-full bg-zinc-800 border border-zinc-700 rounded px-2.5 py-1.5 text-xs text-zinc-100"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] text-zinc-400 mb-1">Designation & Title</label>
+                      <input
+                        type="text"
+                        value={newUserDesignation}
+                        onChange={e => setNewUserDesignation(e.target.value)}
+                        placeholder="e.g. Senior Project Architect"
+                        className="w-full bg-zinc-800 border border-zinc-700 rounded px-2.5 py-1.5 text-xs text-zinc-100"
+                      />
                     </div>
 
                     <div>
@@ -522,45 +802,119 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
               )}
 
               {/* Users List */}
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 {users.map(u => {
                   const meta = roleMeta[u.role];
+                  const isAamirOwner = u.email.trim().toLowerCase() === 'ar.khanaamir@gmail.com';
+                  const isUserDisabled = u.disabled || u.status === 'Disabled';
+
                   return (
                     <div
                       key={u.id}
-                      className="flex items-center justify-between p-3 rounded-xl border border-zinc-800 bg-zinc-900/40"
+                      className={`flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-xl border transition gap-3 ${
+                        isUserDisabled
+                          ? 'border-rose-900/40 bg-rose-950/10 opacity-75'
+                          : 'border-zinc-800 bg-zinc-900/40 hover:border-zinc-700'
+                      }`}
                     >
-                      <div className="flex items-center space-x-3">
+                      <div className="flex items-center space-x-3.5">
                         {u.avatar ? (
-                          <img src={u.avatar} alt={u.name} className="h-8 w-8 rounded-lg object-cover" />
+                          <img src={u.avatar} alt={u.name} className="h-9 w-9 rounded-lg object-cover ring-1 ring-zinc-700" />
                         ) : (
-                          <div className="h-8 w-8 rounded-lg bg-zinc-800 text-amber-400 flex items-center justify-center font-bold text-xs">
+                          <div className="h-9 w-9 rounded-lg bg-zinc-800 text-amber-400 flex items-center justify-center font-bold text-xs border border-zinc-700">
                             {u.name.charAt(0)}
                           </div>
                         )}
                         <div>
-                          <div className="flex items-center space-x-2">
-                            <span className="text-xs font-bold text-zinc-200">{u.name}</span>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className={`text-xs font-bold ${isUserDisabled ? 'text-zinc-400 line-through' : 'text-zinc-100'}`}>
+                              {u.name}
+                            </span>
                             <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium border ${meta.color}`}>
                               {u.role.toUpperCase()}
                             </span>
+                            {isUserDisabled ? (
+                              <span className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">
+                                DISABLED
+                              </span>
+                            ) : (
+                              <span className="text-[9px] px-1.5 py-0.5 rounded font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                ACTIVE
+                              </span>
+                            )}
+                            {isAamirOwner && (
+                              <span className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                                MANAGING OWNER
+                              </span>
+                            )}
                           </div>
-                          <p className="text-[11px] font-mono text-zinc-400">{u.email}</p>
+
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5 text-[11px] text-zinc-400">
+                            <span className="font-mono text-zinc-300">{u.email}</span>
+                            <span>•</span>
+                            <span className="text-zinc-300">{u.phone || 'No phone'}</span>
+                            {u.designation && (
+                              <>
+                                <span>•</span>
+                                <span className="text-zinc-400 italic">{u.designation}</span>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center space-x-2">
-                        {u.id !== currentUser.id && (
+                      {/* Management Actions (Owner Exclusive) */}
+                      <div className="flex items-center space-x-1.5 self-end sm:self-center shrink-0">
+                        {/* Edit Profile Button */}
+                        <button
+                          onClick={() => {
+                            setShowAddUserModal(false);
+                            handleStartEditTargetUser(u);
+                          }}
+                          className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg border border-zinc-700 bg-zinc-800 text-zinc-200 text-xs hover:bg-zinc-700 transition"
+                          title="Edit profile and contact details"
+                        >
+                          <Edit3 className="h-3 w-3 text-amber-400" />
+                          <span>Edit</span>
+                        </button>
+
+                        {/* Disable / Enable Button */}
+                        {!isAamirOwner && (
+                          <button
+                            onClick={() => toggleUserDisabled(u.id)}
+                            className={`flex items-center space-x-1 px-2.5 py-1.5 rounded-lg border text-xs transition ${
+                              isUserDisabled
+                                ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20'
+                                : 'border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20'
+                            }`}
+                            title={isUserDisabled ? 'Re-enable account login' : 'Disable and suspend account login'}
+                          >
+                            {isUserDisabled ? (
+                              <>
+                                <Check className="h-3 w-3" />
+                                <span>Enable</span>
+                              </>
+                            ) : (
+                              <>
+                                <UserX className="h-3 w-3" />
+                                <span>Disable</span>
+                              </>
+                            )}
+                          </button>
+                        )}
+
+                        {/* Delete Button */}
+                        {!isAamirOwner && (
                           <button
                             onClick={() => {
-                              if (window.confirm(`Delete profile for ${u.name}?`)) {
+                              if (window.confirm(`Are you sure you want to permanently delete the profile for "${u.name}"? This action cannot be undone.`)) {
                                 deleteUser(u.id);
                               }
                             }}
-                            className="p-1.5 text-zinc-500 hover:text-rose-400 transition"
-                            title="Delete User"
+                            className="p-1.5 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition"
+                            title="Delete User Profile"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-3.5 w-3.5" />
                           </button>
                         )}
                       </div>

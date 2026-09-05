@@ -20,6 +20,8 @@ export interface UserProfile {
   assignedProjects: string[]; // project IDs or ['ALL']
   permissions: string[];
   lastLogin?: string;
+  disabled?: boolean;
+  status?: 'Active' | 'Disabled';
 }
 
 export interface ProjectMilestone {
@@ -109,6 +111,9 @@ export interface Worker {
   advanceReceived: number;
   pendingWage: number;
   status: 'Active' | 'Inactive';
+  isBlacklisted?: boolean;
+  blacklistReason?: string;
+  disabled?: boolean;
 }
 
 export interface AttendanceRecord {
@@ -156,27 +161,40 @@ export interface ExpenseRecord {
   projectId: string;
   projectName: string;
   date: string;
-  category: 'Material Purchase' | 'Labour Wages' | 'Machinery & Equipment' | 'Site Utilities & Fuel' | 'Subcontractor' | 'Design & Approvals';
+  category: 'Material Purchase' | 'Labour Wages' | 'Machinery & Equipment' | 'Site Utilities & Fuel' | 'Subcontractor' | 'Design & Approvals' | string;
   vendorPayee: string;
   amount: number;
-  paymentMode: 'UPI' | 'Bank Transfer / NEFT' | 'Cheque' | 'Cash';
+  paymentMode: 'UPI' | 'Bank Transfer / NEFT' | 'Cheque' | 'Cash' | string;
   receiptNumber: string;
   status: 'Submitted' | 'Approved' | 'Paid';
   paidBy: string;
   receiptImage?: string;
   notes?: string;
+  title?: string;
+  paidTo?: string;
+  invoiceNumber?: string;
+  vendorId?: string;
 }
 
 export interface Vendor {
   id: string;
   name: string;
-  category: 'Material Supplier' | 'Subcontractor' | 'Equipment Rental';
+  category: 'Material Supplier' | 'Subcontractor' | 'Equipment Rental' | string;
   contactPerson: string;
   phone: string;
+  email?: string;
+  address?: string;
+  gstin?: string;
+  gstNumber?: string;
   totalBilled: number;
   totalPaid: number;
   balanceOutstanding: number;
-  status: 'Active' | 'Pending Settlement';
+  status: 'Active' | 'Pending Settlement' | 'Disputed' | 'Blocked' | 'Disabled';
+  isBlacklisted?: boolean;
+  blacklistReason?: string;
+  disabled?: boolean;
+  paidAmount?: number;
+  pendingAmount?: number;
 }
 
 export interface QuoteEstimate {

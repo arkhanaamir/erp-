@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useCasabuild } from '../context/CasabuildContext';
 import { Project, ProjectMilestone, DrawingItem, BOQItem } from '../types';
+import { exportToExcel } from '../utils/excelExport';
 import {
   FolderKanban,
   Plus,
@@ -20,7 +21,8 @@ import {
   Percent,
   SlidersHorizontal,
   Compass,
-  Building
+  Building,
+  FileSpreadsheet
 } from 'lucide-react';
 
 export const ProjectManagementView: React.FC = () => {
@@ -33,6 +35,110 @@ export const ProjectManagementView: React.FC = () => {
     updateProject,
     currentRole
   } = useCasabuild();
+
+  const handleExportProjectsDirectory = () => {
+    const headers = [
+      'Project Code',
+      'Project Name',
+      'Client Name',
+      'Location',
+      'Project Type',
+      'Contract Value (INR)',
+      'Allocated Budget (INR)',
+      'Built-Up Area (Sq.Ft)',
+      'Overall Progress (%)',
+      'Total Milestones Count',
+      'Drawings Count',
+      'Target Handover'
+    ];
+    const rows = projects.map(p => [
+      p.code,
+      p.name,
+      p.clientName,
+      p.location,
+      p.type,
+      p.contractValue,
+      p.budget,
+      p.areaSqFt,
+      p.overallProgress,
+      p.milestones.length,
+      p.drawings.length,
+      p.expectedCompletion
+    ]);
+    exportToExcel('casabuild_all_projects_directory', headers, rows);
+  };
+
+  const handleExportMilestones = () => {
+    const headers = [
+      'Milestone ID',
+      'Phase',
+      'Stage Title',
+      'Start Date',
+      'Target End Date',
+      'Completion (%)',
+      'Status',
+      'Assigned Team / Lead'
+    ];
+    const rows = activeProject.milestones.map(m => [
+      m.id,
+      m.phase,
+      m.title,
+      m.startDate,
+      m.endDate,
+      m.progress,
+      m.status,
+      m.assignedTo || 'Casabuild Team'
+    ]);
+    exportToExcel(`casabuild_milestones_${activeProject.code}`, headers, rows);
+  };
+
+  const handleExportDrawings = () => {
+    const headers = [
+      'Drawing ID',
+      'Drawing Sheet Title',
+      'Category / Discipline',
+      'Revision Code',
+      'Upload Date',
+      'Approval Status',
+      'Approved By Lead'
+    ];
+    const rows = activeProject.drawings.map(d => [
+      d.id,
+      d.title,
+      d.type,
+      d.revision,
+      d.uploadDate,
+      d.status,
+      d.approvedBy || 'Pending'
+    ]);
+    exportToExcel(`casabuild_drawings_vault_${activeProject.code}`, headers, rows);
+  };
+
+  const handleExportBOQ = () => {
+    const headers = [
+      'Item ID',
+      'Description / Specification',
+      'Category',
+      'Quantity',
+      'Unit',
+      'Unit Rate (INR)',
+      'Total Amount (INR)',
+      'Execution Completed (%)',
+      'Certified RA Billed (INR)'
+    ];
+    const rows = activeProject.boq.map(b => [
+      b.id,
+      b.item,
+      b.category,
+      b.quantity,
+      b.unit,
+      b.unitRate,
+      b.amount,
+      b.completedPercent,
+      b.billedAmount
+    ]);
+    exportToExcel(`casabuild_live_boq_${activeProject.code}`, headers, rows);
+  };
 
   const [activeTab, setActiveTab] = useState<'overview' | 'milestones' | 'drawings' | 'boq' | 'documents'>('overview');
   const [showAddProjectModal, setShowAddProjectModal] = useState(false);
@@ -163,7 +269,16 @@ export const ProjectManagementView: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center space-x-2.5">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={handleExportProjectsDirectory}
+            className="flex items-center space-x-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3.5 py-2 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20 transition"
+            title="Export full projects directory to Microsoft Excel"
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            <span>Export Projects (Excel)</span>
+          </button>
+
           {currentRole === 'owner' && (
             <button
               id="project-add-new-btn"
@@ -363,18 +478,28 @@ export const ProjectManagementView: React.FC = () => {
       {/* Tab: Milestones Gantt & Progress Sliders */}
       {activeTab === 'milestones' && (
         <div className="rounded-2xl border border-zinc-800 bg-[#161922] p-6 shadow-xl">
-          <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-zinc-800">
             <div>
               <h4 className="text-base font-bold text-zinc-100 font-['Outfit',sans-serif]">Interactive Milestone Timeline</h4>
               <p className="text-xs text-zinc-400">Update stage progress sliders to recalibrate project completion %</p>
             </div>
-            <button
-              onClick={() => setShowAddMilestoneModal(true)}
-              className="flex items-center space-x-1.5 rounded-xl border border-zinc-700 bg-zinc-800 px-3.5 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-700 transition"
-            >
-              <Plus className="h-3.5 w-3.5 text-amber-500" />
-              <span>Add Phase</span>
-            </button>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={handleExportMilestones}
+                className="flex items-center space-x-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3.5 py-2 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20 transition"
+                title="Export milestone schedule to Microsoft Excel"
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                <span>Export Milestones (Excel)</span>
+              </button>
+              <button
+                onClick={() => setShowAddMilestoneModal(true)}
+                className="flex items-center space-x-1.5 rounded-xl border border-zinc-700 bg-zinc-800 px-3.5 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-700 transition"
+              >
+                <Plus className="h-3.5 w-3.5 text-amber-500" />
+                <span>Add Phase</span>
+              </button>
+            </div>
           </div>
 
           <div className="mt-4 space-y-3.5">
@@ -419,18 +544,28 @@ export const ProjectManagementView: React.FC = () => {
       {/* Tab: Drawings Vault */}
       {activeTab === 'drawings' && (
         <div className="rounded-2xl border border-zinc-800 bg-[#161922] p-6 shadow-xl">
-          <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-zinc-800">
             <div>
               <h4 className="text-base font-bold text-zinc-100 font-['Outfit',sans-serif]">Architectural & Structural Drawings Vault</h4>
               <p className="text-xs text-zinc-400">Official PDFs, floorplans, and revisions for {activeProject.name}</p>
             </div>
-            <button
-              onClick={() => setShowAddDrawingModal(true)}
-              className="flex items-center space-x-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 px-3.5 py-2 text-xs font-semibold text-zinc-950 shadow-lg shadow-amber-500/20 transition"
-            >
-              <Upload className="h-3.5 w-3.5" />
-              <span>Upload Drawing</span>
-            </button>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={handleExportDrawings}
+                className="flex items-center space-x-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3.5 py-2 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20 transition"
+                title="Export drawings register to Microsoft Excel"
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                <span>Export Drawings (Excel)</span>
+              </button>
+              <button
+                onClick={() => setShowAddDrawingModal(true)}
+                className="flex items-center space-x-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 px-3.5 py-2 text-xs font-semibold text-zinc-950 shadow-lg shadow-amber-500/20 transition"
+              >
+                <Upload className="h-3.5 w-3.5" />
+                <span>Upload Drawing</span>
+              </button>
+            </div>
           </div>
 
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -469,16 +604,26 @@ export const ProjectManagementView: React.FC = () => {
       {/* Tab: BOQ (Bill of Quantities) Tracking */}
       {activeTab === 'boq' && (
         <div className="rounded-2xl border border-zinc-800 bg-[#161922] p-6 shadow-xl">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-zinc-800">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-zinc-800">
             <div>
               <h4 className="text-base font-bold text-zinc-100 font-['Outfit',sans-serif]">Live Bill of Quantities (BOQ) & RA Billing</h4>
               <p className="text-xs text-zinc-400">Execution status vs quoted amounts</p>
             </div>
-            <div className="text-right">
-              <span className="text-xs text-zinc-400">Total BOQ Value: </span>
-              <span className="text-sm font-bold text-emerald-400">
-                ₹{activeProject.boq.reduce((acc, curr) => acc + curr.amount, 0).toLocaleString('en-IN')}
-              </span>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                onClick={handleExportBOQ}
+                className="flex items-center space-x-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3.5 py-2 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20 transition"
+                title="Export live BOQ items to Microsoft Excel"
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                <span>Export Live BOQ (Excel)</span>
+              </button>
+              <div className="text-right">
+                <span className="text-xs text-zinc-400">Total BOQ Value: </span>
+                <span className="text-sm font-bold text-emerald-400">
+                  ₹{activeProject.boq.reduce((acc, curr) => acc + curr.amount, 0).toLocaleString('en-IN')}
+                </span>
+              </div>
             </div>
           </div>
 

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useCasabuild } from '../context/CasabuildContext';
+import { exportToExcel } from '../utils/excelExport';
 import {
   FileBarChart2,
   Printer,
@@ -12,7 +13,8 @@ import {
   IndianRupee,
   CheckCircle2,
   FileText,
-  Loader2
+  Loader2,
+  FileSpreadsheet
 } from 'lucide-react';
 
 export const ReportsCenterView: React.FC = () => {
@@ -29,6 +31,31 @@ export const ReportsCenterView: React.FC = () => {
   const [generatingAI, setGeneratingAI] = useState(false);
   const [aiReportContent, setAiReportContent] = useState<string | null>(null);
   const [activeReportType, setActiveReportType] = useState<'dsr' | 'weekly' | 'payroll' | 'materials' | 'vendors'>('dsr');
+
+  const handleExportCurrentReport = () => {
+    if (activeReportType === 'dsr') {
+      const headers = ['Report ID', 'Date', 'Supervisor', 'Weather', 'Workers', 'Progress (%)', 'Today Work', 'Issues'];
+      const rows = dailyReports.map(r => [r.id, r.date, r.supervisorName, r.weather, r.workersCount, `${r.progressPercentage}%`, r.todaysWork, r.issues || 'None']);
+      exportToExcel(`casabuild_report_dsr_${activeProject.name}`, headers, rows);
+    } else if (activeReportType === 'payroll') {
+      const headers = ['Worker ID', 'Name', 'Trade', 'Daily Wage (INR)', 'Days Worked', 'Advance Received (INR)', 'Pending Wage (INR)'];
+      const rows = workers.map(w => [w.id, w.name, w.trade, w.dailyWage, w.totalDaysWorked, w.advanceReceived, w.pendingWage]);
+      exportToExcel(`casabuild_report_payroll_${activeProject.name}`, headers, rows);
+    } else if (activeReportType === 'materials') {
+      const headers = ['Item ID', 'Material Name', 'Category', 'Stock Balance', 'Unit', 'Unit Cost (INR)', 'Total Valuation (INR)', 'Stock Status'];
+      const rows = materials.map(m => [m.id, m.name, m.category, m.currentBalance, m.unit, m.unitCost, m.currentBalance * m.unitCost, m.status]);
+      exportToExcel(`casabuild_report_materials_${activeProject.name}`, headers, rows);
+    } else if (activeReportType === 'vendors') {
+      const headers = ['Vendor ID', 'Company Name', 'Trade / Category', 'Contact Person', 'Phone', 'Total Billed (INR)', 'Total Paid (INR)', 'Outstanding Due (INR)'];
+      const rows = vendors.map(v => [v.id, v.name, v.category, v.contactPerson, v.phone, v.totalBilled, v.paidAmount, v.pendingAmount]);
+      exportToExcel(`casabuild_report_vendors_${activeProject.name}`, headers, rows);
+    } else {
+      // weekly summary
+      const headers = ['Project Name', 'Location', 'Overall Progress', 'Client Name', 'Summary Note'];
+      const rows = [[activeProject.name, activeProject.location, `${activeProject.overallProgress}%`, activeProject.clientName, aiReportContent || 'Executive weekly progress summary']];
+      exportToExcel(`casabuild_report_weekly_${activeProject.name}`, headers, rows);
+    }
+  };
 
   const handleGenerateAIWeekly = async () => {
     setGeneratingAI(true);
@@ -93,7 +120,16 @@ The Casabuild Turnkey Architecture & Construction`);
           </p>
         </div>
 
-        <div className="flex items-center space-x-2.5">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={handleExportCurrentReport}
+            className="flex items-center space-x-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3.5 py-2 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20 transition"
+            title="Export active report table data to Microsoft Excel"
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            <span>Export Table (Excel)</span>
+          </button>
+
           <button
             onClick={() => window.print()}
             className="flex items-center space-x-1.5 rounded-xl border border-zinc-700 bg-zinc-800 px-3.5 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-700 transition"

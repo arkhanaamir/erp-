@@ -114,16 +114,17 @@ export const INITIAL_PROJECTS: Project[] = [
 ];
 
 export const INITIAL_WORKERS: Worker[] = [
-  { id: 'w1', name: 'Shahid Ansari', trade: 'Mason', phone: '+91 98110 88211', photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80', dailyWage: 950, totalDaysWorked: 26, advanceReceived: 4000, pendingWage: 20700, status: 'Active' },
-  { id: 'w2', name: 'Imran Khan', trade: 'Mason', phone: '+91 98223 11452', photo: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80', dailyWage: 900, totalDaysWorked: 24, advanceReceived: 3500, pendingWage: 18100, status: 'Active' },
-  { id: 'w3', name: 'Raju Paswan', trade: 'Helper', phone: '+91 97188 23901', photo: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=200&q=80', dailyWage: 650, totalDaysWorked: 27, advanceReceived: 2000, pendingWage: 15550, status: 'Active' },
-  { id: 'w4', name: 'Dinesh Sharma', trade: 'Carpenter', phone: '+91 98912 66731', photo: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80', dailyWage: 1100, totalDaysWorked: 22, advanceReceived: 5000, pendingWage: 19200, status: 'Active' },
-  { id: 'w5', name: 'Mukesh Pal', trade: 'Carpenter', phone: '+91 99104 55122', photo: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=200&q=80', dailyWage: 1050, totalDaysWorked: 21, advanceReceived: 4500, pendingWage: 17550, status: 'Active' },
-  { id: 'w6', name: 'Zameer Alam', trade: 'Electrician', phone: '+91 98109 43220', photo: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=200&q=80', dailyWage: 1000, totalDaysWorked: 25, advanceReceived: 3000, pendingWage: 22000, status: 'Active' },
-  { id: 'w7', name: 'Bablu Yadav', trade: 'Plumber', phone: '+91 98711 67439', photo: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=200&q=80', dailyWage: 1000, totalDaysWorked: 23, advanceReceived: 2500, pendingWage: 20500, status: 'Active' },
-  { id: 'w8', name: 'Suraj Chauhan', trade: 'Tile Specialist', phone: '+91 98114 99128', photo: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=200&q=80', dailyWage: 1150, totalDaysWorked: 24, advanceReceived: 6000, pendingWage: 21600, status: 'Active' },
-  { id: 'w9', name: 'Ramkishan Lodhi', trade: 'Helper', phone: '+91 97112 00411', photo: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=200&q=80', dailyWage: 650, totalDaysWorked: 26, advanceReceived: 1500, pendingWage: 15400, status: 'Active' },
-  { id: 'w10', name: 'Santosh Kumar', trade: 'Painter', phone: '+91 98991 33215', photo: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=200&q=80', dailyWage: 950, totalDaysWorked: 18, advanceReceived: 3000, pendingWage: 14100, status: 'Active' }
+  { id: 'w1', name: 'Shahid Ansari', trade: 'Mason', phone: '+91 98110 88211', photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80', dailyWage: 950, totalDaysWorked: 26, advanceReceived: 4000, pendingWage: 20700, status: 'Active', isBlacklisted: false, disabled: false },
+  { id: 'w2', name: 'Imran Khan', trade: 'Mason', phone: '+91 98223 11452', photo: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80', dailyWage: 900, totalDaysWorked: 24, advanceReceived: 3500, pendingWage: 18100, status: 'Active', isBlacklisted: false, disabled: false },
+  { id: 'w3', name: 'Raju Paswan', trade: 'Helper', phone: '+91 97188 23901', photo: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=200&q=80', dailyWage: 650, totalDaysWorked: 27, advanceReceived: 2000, pendingWage: 15550, status: 'Active', isBlacklisted: false, disabled: false },
+  { id: 'w4', name: 'Dinesh Sharma', trade: 'Carpenter', phone: '+91 98912 66731', photo: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80', dailyWage: 1100, totalDaysWorked: 22, advanceReceived: 5000, pendingWage: 19200, status: 'Active', isBlacklisted: false, disabled: false },
+  { id: 'w5', name: 'Mukesh Pal', trade: 'Carpenter', phone: '+91 99104 55122', photo: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=200&q=80', dailyWage: 1050, totalDaysWorked: 21, advanceReceived: 4500, pendingWage: 17550, status: 'Active', isBlacklisted: false, disabled: false },
+  { id: 'w6', name: 'Zameer Alam', trade: 'Electrician', phone: '+91 98109 43220', photo: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=200&q=80', dailyWage: 1000, totalDaysWorked: 25, advanceReceived: 3000, pendingWage: 22000, status: 'Active', isBlacklisted: false, disabled: false },
+  { id: 'w7', name: 'Bablu Yadav', trade: 'Plumber', phone: '+91 98711 67439', photo: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=200&q=80', dailyWage: 1000, totalDaysWorked: 23, advanceReceived: 2500, pendingWage: 20500, status: 'Active', isBlacklisted: false, disabled: false },
+  { id: 'w8', name: 'Suraj Chauhan', trade: 'Tile Specialist', phone: '+91 98114 99128', photo: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=200&q=80', dailyWage: 1150, totalDaysWorked: 24, advanceReceived: 6000, pendingWage: 21600, status: 'Active', isBlacklisted: false, disabled: false },
+  { id: 'w9', name: 'Ramkishan Lodhi', trade: 'Helper', phone: '+91 97112 00411', photo: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=200&q=80', dailyWage: 650, totalDaysWorked: 26, advanceReceived: 1500, pendingWage: 15400, status: 'Active', isBlacklisted: false, disabled: false },
+  { id: 'w10', name: 'Santosh Kumar', trade: 'Painter', phone: '+91 98991 33215', photo: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=200&q=80', dailyWage: 950, totalDaysWorked: 18, advanceReceived: 3000, pendingWage: 14100, status: 'Active', isBlacklisted: false, disabled: false },
+  { id: 'w11', name: 'Rameshwar Barman', trade: 'Mason', phone: '+91 98199 44012', photo: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=200&q=80', dailyWage: 900, totalDaysWorked: 12, advanceReceived: 8000, pendingWage: 2800, status: 'Inactive', isBlacklisted: true, blacklistReason: 'Severe site safety violation: Refused harness on scaffolding and repeated unauthorized absences.', disabled: true }
 ];
 
 export const INITIAL_ATTENDANCE: AttendanceRecord[] = [
@@ -207,11 +208,103 @@ export const INITIAL_EXPENSES: ExpenseRecord[] = [
 ];
 
 export const INITIAL_VENDORS: Vendor[] = [
-  { id: 'v-1', name: 'Shree Cement & Building Supply', category: 'Material Supplier', contactPerson: 'Ramesh Agarwal', phone: '+91 98101 22934', totalBilled: 680000, totalPaid: 590000, balanceOutstanding: 90000, status: 'Active' },
-  { id: 'v-2', name: 'Apex Steels & Alloys Corp', category: 'Material Supplier', contactPerson: 'Sunil Mittal', phone: '+91 98200 44912', totalBilled: 1420000, totalPaid: 1250000, balanceOutstanding: 170000, status: 'Active' },
-  { id: 'v-3', name: 'Farooq Labour Contractor', category: 'Subcontractor', contactPerson: 'Farooq Sheikh', phone: '+91 98711 55320', totalBilled: 940000, totalPaid: 901550, balanceOutstanding: 38450, status: 'Pending Settlement' },
-  { id: 'v-4', name: 'Flooring Masters & Italian Marble Co', category: 'Subcontractor', contactPerson: 'Giacomo / Satish', phone: '+91 98114 88200', totalBilled: 1200000, totalPaid: 850000, balanceOutstanding: 350000, status: 'Active' },
-  { id: 'v-5', name: 'Havells & Polycab Electrical Syndicate', category: 'Material Supplier', contactPerson: 'Rajiv Chawla', phone: '+91 99100 77412', totalBilled: 410000, totalPaid: 370000, balanceOutstanding: 40000, status: 'Active' }
+  { 
+    id: 'v-1', 
+    name: 'Shree Cement & Building Supply', 
+    category: 'Material Supplier', 
+    contactPerson: 'Ramesh Agarwal', 
+    phone: '+91 98101 22934', 
+    email: 'ramesh@shreecementdealers.in',
+    address: 'Plot 44, Udyog Vihar Phase 1, Gurugram',
+    gstin: '07AAACS1829K1Z4',
+    totalBilled: 680000, 
+    totalPaid: 590000, 
+    balanceOutstanding: 90000, 
+    status: 'Active',
+    isBlacklisted: false,
+    disabled: false
+  },
+  { 
+    id: 'v-2', 
+    name: 'Apex Steels & Alloys Corp', 
+    category: 'Material Supplier', 
+    contactPerson: 'Sunil Mittal', 
+    phone: '+91 98200 44912', 
+    email: 'smittal@apexsteelcorp.com',
+    address: 'Warehouse 12, Transport Nagar, Delhi',
+    gstin: '07AABCA9918M1ZQ',
+    totalBilled: 1420000, 
+    totalPaid: 1250000, 
+    balanceOutstanding: 170000, 
+    status: 'Active',
+    isBlacklisted: false,
+    disabled: false
+  },
+  { 
+    id: 'v-3', 
+    name: 'Farooq Labour Contractor', 
+    category: 'Subcontractor', 
+    contactPerson: 'Farooq Sheikh', 
+    phone: '+91 98711 55320', 
+    email: 'farooq.civillabour@gmail.com',
+    address: 'Sector 53 Labour Colony, Gurugram',
+    gstin: 'Unregistered Small Enterprise',
+    totalBilled: 940000, 
+    totalPaid: 901550, 
+    balanceOutstanding: 38450, 
+    status: 'Pending Settlement',
+    isBlacklisted: false,
+    disabled: false
+  },
+  { 
+    id: 'v-4', 
+    name: 'Flooring Masters & Italian Marble Co', 
+    category: 'Subcontractor', 
+    contactPerson: 'Giacomo / Satish', 
+    phone: '+91 98114 88200', 
+    email: 'contact@flooringmastersdelhi.com',
+    address: 'Marble Market, Rajouri Garden, New Delhi',
+    gstin: '07AAFFM4412B1Z8',
+    totalBilled: 1200000, 
+    totalPaid: 850000, 
+    balanceOutstanding: 350000, 
+    status: 'Active',
+    isBlacklisted: false,
+    disabled: false
+  },
+  { 
+    id: 'v-5', 
+    name: 'Havells & Polycab Electrical Syndicate', 
+    category: 'Material Supplier', 
+    contactPerson: 'Rajiv Chawla', 
+    phone: '+91 99100 77412', 
+    email: 'chawla.electrics@yahoo.com',
+    address: 'Bhagirath Palace, Chandni Chowk, Delhi',
+    gstin: '07AAGPH8172D1ZK',
+    totalBilled: 410000, 
+    totalPaid: 370000, 
+    balanceOutstanding: 40000, 
+    status: 'Active',
+    isBlacklisted: false,
+    disabled: false
+  },
+  {
+    id: 'v-6',
+    name: 'Vanguard Structural Steels & Rebar Ltd',
+    category: 'Material Supplier',
+    contactPerson: 'Mukesh Goel',
+    phone: '+91 98109 00192',
+    email: 'mgoel@vanguardrebar.in',
+    address: 'Industrial Area Phase 2, Mayapuri, Delhi',
+    gstin: '07AABCV8912P1ZN',
+    totalBilled: 850000,
+    totalPaid: 500000,
+    balanceOutstanding: 350000,
+    status: 'Pending Settlement',
+    isBlacklisted: true,
+    blacklistReason: 'Delivered substandard rebar batch with non-conforming yield strength certificate. Blacklisted by Ar. Aamir Khan.',
+    disabled: true
+  }
 ];
 
 export const INITIAL_QUOTES: QuoteEstimate[] = [
@@ -265,12 +358,37 @@ export const INITIAL_USERS: UserProfile[] = [
     name: 'Ar. Aamir Khan',
     email: 'Ar.khanaamir@gmail.com',
     password: 'password123',
-    role: 'architect',
-    designation: 'Principal Architect & Design Lead',
+    role: 'owner',
+    designation: 'Managing Owner & Principal Architect',
     phone: '+91 98101 23456',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-    companyOrAffiliation: 'The Casabuild Design Studio',
+    companyOrAffiliation: 'The Casabuild Design & Turnkey Studio',
     licenseNumber: 'COA Reg. CA/2018/98421',
+    assignedProjects: ['ALL'],
+    permissions: [
+      'Full Administrative & Master ERP Access (Owner)',
+      'Employee Directory & Contact Details Governance',
+      'Vendor & Contractor Blacklisting Controls',
+      'Contract Approvals & Financial Authorizations',
+      'Architectural & Interior Drawings Management',
+      'BOQ & Construction Cost Estimation',
+      'Excel Data Exports & Statutory Auditing'
+    ],
+    lastLogin: '2026-09-05 08:45',
+    disabled: false,
+    status: 'Active'
+  },
+  {
+    id: 'usr-2',
+    name: 'Vikramaditya Singhania',
+    email: 'vikram@thecasabuild.com',
+    password: 'password123',
+    role: 'architect',
+    designation: 'Co-Director & Senior Project Architect',
+    phone: '+91 98200 11223',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
+    companyOrAffiliation: 'The Casabuild Group Ltd.',
+    licenseNumber: 'CIN U45201DL2019PTC345678',
     assignedProjects: ['ALL'],
     permissions: [
       'Architectural & Interior Drawings Management',
@@ -280,28 +398,9 @@ export const INITIAL_USERS: UserProfile[] = [
       'Site Photo Journal & Quality Inspection',
       'Executive Progress Reporting'
     ],
-    lastLogin: '2026-09-04 12:45'
-  },
-  {
-    id: 'usr-2',
-    name: 'Vikramaditya Singhania',
-    email: 'vikram@thecasabuild.com',
-    password: 'password123',
-    role: 'owner',
-    designation: 'Managing Director & Founder',
-    phone: '+91 98200 11223',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
-    companyOrAffiliation: 'The Casabuild Group Ltd.',
-    licenseNumber: 'CIN U45201DL2019PTC345678',
-    assignedProjects: ['ALL'],
-    permissions: [
-      'Full Administrative & Master ERP Access',
-      'Contract Approvals & Financial Authorizations',
-      'Vendor Disbursements & Payment Approvals',
-      'User Provisioning & Role Governance',
-      'Auditing & Statutory Compliance'
-    ],
-    lastLogin: '2026-09-04 10:15'
+    lastLogin: '2026-09-04 10:15',
+    disabled: false,
+    status: 'Active'
   },
   {
     id: 'usr-3',
@@ -322,7 +421,9 @@ export const INITIAL_USERS: UserProfile[] = [
       'Site Progress Photo Documentation',
       'Safety & Quality Checklists'
     ],
-    lastLogin: '2026-09-04 08:30'
+    lastLogin: '2026-09-04 08:30',
+    disabled: false,
+    status: 'Active'
   },
   {
     id: 'usr-4',
@@ -343,7 +444,9 @@ export const INITIAL_USERS: UserProfile[] = [
       'GST Invoice Audit & Input Tax Credit',
       'Project Budget Overrun Tracking'
     ],
-    lastLogin: '2026-09-03 18:20'
+    lastLogin: '2026-09-03 18:20',
+    disabled: false,
+    status: 'Active'
   },
   {
     id: 'usr-5',
@@ -363,7 +466,9 @@ export const INITIAL_USERS: UserProfile[] = [
       'Subcontractor Task Completion Updates',
       'Material Indent Submission'
     ],
-    lastLogin: '2026-09-04 07:45'
+    lastLogin: '2026-09-04 07:45',
+    disabled: false,
+    status: 'Active'
   },
   {
     id: 'usr-6',
@@ -383,7 +488,9 @@ export const INITIAL_USERS: UserProfile[] = [
       'Approve / Request Revisions on Interior Selections',
       'Download Verified Payment Receipts & Milestone Certificates'
     ],
-    lastLogin: '2026-09-02 16:10'
+    lastLogin: '2026-09-02 16:10',
+    disabled: false,
+    status: 'Active'
   }
 ];
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useCasabuild } from '../context/CasabuildContext';
 import { QuoteEstimateRequest, QuoteEstimateResponse } from '../types';
+import { exportToExcel } from '../utils/excelExport';
 import {
   FileSpreadsheet,
   Sparkles,
@@ -302,7 +303,35 @@ export const QuoteGeneratorView: React.FC = () => {
               </p>
             </div>
 
-            <div className="flex items-center space-x-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => {
+                  if (!generatedQuote) return;
+                  const headers = [
+                    'Category',
+                    'Scope / Item Specification',
+                    'Quantity',
+                    'Unit',
+                    'Unit Rate (INR)',
+                    'Total Amount (INR)'
+                  ];
+                  const rows = generatedQuote.items.map(item => [
+                    item.category,
+                    item.item,
+                    item.quantity,
+                    item.unit,
+                    item.rate,
+                    item.amount
+                  ]);
+                  exportToExcel(`casabuild_boq_quote_${activeProject.name.toLowerCase().replace(/\s+/g, '_')}`, headers, rows);
+                }}
+                className="flex items-center space-x-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3.5 py-2 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20 transition"
+                title="Export itemized BOQ estimate to Microsoft Excel"
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                <span>Export BOQ (Excel)</span>
+              </button>
+
               <button
                 onClick={() => window.print()}
                 className="flex items-center space-x-1.5 rounded-xl border border-zinc-700 bg-zinc-800 px-3.5 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-700 transition"

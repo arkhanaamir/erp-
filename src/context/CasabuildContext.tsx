@@ -38,6 +38,7 @@ interface CasabuildContextType {
   updateUserProfile: (id: string, updates: Partial<UserProfile>) => void;
   addUser: (u: Omit<UserProfile, 'id'>) => void;
   deleteUser: (id: string) => void;
+  toggleUserDisabled: (id: string) => void;
   currentRole: UserRole;
   setRole: (role: UserRole) => void;
   activeProjectId: string;
@@ -49,6 +50,9 @@ interface CasabuildContextType {
   workers: Worker[];
   addWorker: (w: Partial<Worker>) => void;
   updateWorker: (id: string, updates: Partial<Worker>) => void;
+  deleteWorker: (id: string) => void;
+  toggleWorkerBlacklist: (id: string, reason?: string) => void;
+  toggleWorkerDisabled: (id: string) => void;
   attendance: AttendanceRecord[];
   markAttendance: (workerId: string, status: 'Present' | 'Half Day' | 'Absent', workAssigned: string) => void;
   dailyReports: DailySiteReport[];
@@ -62,6 +66,10 @@ interface CasabuildContextType {
   addExpense: (e: Partial<ExpenseRecord>) => void;
   vendors: Vendor[];
   addVendor: (v: Partial<Vendor>) => void;
+  updateVendor: (id: string, updates: Partial<Vendor>) => void;
+  deleteVendor: (id: string) => void;
+  toggleVendorBlacklist: (id: string, reason?: string) => void;
+  toggleVendorDisabled: (id: string) => void;
   recordVendorPayment: (vendorId: string, amount: number, paymentMode: string) => void;
   settleVendorPayment?: (vendorId: string, amount: number, paymentMode?: string) => void;
   quotes: QuoteEstimate[];
@@ -79,14 +87,37 @@ const CasabuildContext = createContext<CasabuildContextType | null>(null);
 
 const STORAGE_KEY = 'casabuild_erp_v3_state';
 
+// Enforce rule: Ar. Aamir Khan (ar.khanaamir@gmail.com) is the ONLY system Owner
+const normalizeOwnerRules = (userList: UserProfile[]): UserProfile[] => {
+  return userList.map(u => {
+    const isAamir = u.email.trim().toLowerCase() === 'ar.khanaamir@gmail.com';
+    if (isAamir) {
+      return {
+        ...u,
+        role: 'owner' as const,
+        designation: u.designation || 'Managing Owner & Principal Architect'
+      };
+    }
+    if (u.role === 'owner' && !isAamir) {
+      return {
+        ...u,
+        role: 'architect' as const,
+        designation: u.designation === 'Managing Director & Founder' ? 'Co-Director & Senior Project Architect' : u.designation
+      };
+    }
+    return u;
+  });
+};
+
 export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Predefined users registry
   const [users, setUsers] = useState<UserProfile[]>(() => {
     try {
       const saved = localStorage.getItem(`${STORAGE_KEY}_users`);
-      return saved ? JSON.parse(saved) : INITIAL_USERS;
+      const parsed: UserProfile[] = saved ? JSON.parse(saved) : INITIAL_USERS;
+      return normalizeOwnerRules(parsed);
     } catch {
-      return INITIAL_USERS;
+      return normalizeOwnerRules(INITIAL_USERS);
     }
   });
 
@@ -94,7 +125,11 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
     try {
       const saved = localStorage.getItem(`${STORAGE_KEY}_currentUser`);
-      return saved ? JSON.parse(saved) : null;
+      if (saved) {
+        const u: UserProfile = JSON.parse(saved);
+        return normalizeOwnerRules([u])[0];
+      }
+      return null;
     } catch {
       return null;
     }
@@ -105,7 +140,8 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const saved = localStorage.getItem(`${STORAGE_KEY}_currentUser`);
       if (saved) {
         const u: UserProfile = JSON.parse(saved);
-        return u.role;
+        const normalized = normalizeOwnerRules([u])[0];
+        return normalized.role;
       }
     } catch {}
     return 'architect';
@@ -277,6 +313,13 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       };
     }
 
+    if (user.disabled || user.status === 'Disabled') {
+      return {
+        success: false,
+        error: 'This account has been disabled by Managing Owner Ar. Aamir Khan. Access to Casabuild ERP is currently suspended.'
+      };
+    }
+
     if (user.password && user.password !== password) {
       return {
         success: false,
@@ -301,6 +344,11 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (existing) {
       return { success: false, error: 'A user profile with this email address already exists in the system.' };
     }
+
+    // Only Ar. Aamir Khan can hold owner role
+    const assignedRole: UserRole = (cleanEmail === 'ar.khanaamir@gmail.com') 
+      ? 'owner' 
+      : (newUser.role === 'owner' ? 'architect' : newUser.role);
 
     const defaultPermissionsMap: Record<UserRole, string[]> = {
       owner: [
@@ -348,15 +396,18 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     const userToSave: UserProfile = {
       ...newUser,
+      role: assignedRole,
       id: `usr-${Date.now()}`,
       email: newUser.email.trim(),
       permissions: newUser.permissions && newUser.permissions.length > 0 
         ? newUser.permissions 
-        : defaultPermissionsMap[newUser.role] || ['Standard Workspace Access'],
+        : defaultPermissionsMap[assignedRole] || ['Standard Workspace Access'],
       assignedProjects: newUser.assignedProjects && newUser.assignedProjects.length > 0
         ? newUser.assignedProjects
         : ['ALL'],
-      lastLogin: new Date().toISOString().replace('T', ' ').slice(0, 16)
+      lastLogin: new Date().toISOString().replace('T', ' ').slice(0, 16),
+      disabled: false,
+      status: 'Active'
     };
 
     setUsers(prev => [userToSave, ...prev]);
@@ -371,14 +422,43 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const updateUserProfile = (id: string, updates: Partial<UserProfile>) => {
-    setUsers(prev => prev.map(u => (u.id === id ? { ...u, ...updates } : u)));
-    if (currentUser && currentUser.id === id) {
-      const updated = { ...currentUser, ...updates };
-      setCurrentUser(updated);
-      if (updates.role) {
-        setRoleState(updates.role);
+    const target = users.find(u => u.id === id);
+    let safeUpdates = { ...updates };
+
+    // Prevent granting owner role to anyone other than Ar. Aamir Khan
+    if (safeUpdates.role === 'owner') {
+      const emailToCheck = safeUpdates.email || target?.email || '';
+      if (emailToCheck.trim().toLowerCase() !== 'ar.khanaamir@gmail.com') {
+        safeUpdates.role = 'architect';
       }
     }
+
+    setUsers(prev => prev.map(u => (u.id === id ? { ...u, ...safeUpdates } : u)));
+    if (currentUser && currentUser.id === id) {
+      const updated = { ...currentUser, ...safeUpdates };
+      setCurrentUser(updated);
+      if (safeUpdates.role) {
+        setRoleState(safeUpdates.role);
+      }
+    }
+  };
+
+  const toggleUserDisabled = (id: string) => {
+    const target = users.find(u => u.id === id);
+    if (target && target.email.trim().toLowerCase() === 'ar.khanaamir@gmail.com') {
+      return; // Cannot disable the Managing Owner
+    }
+    setUsers(prev => prev.map(u => {
+      if (u.id === id) {
+        const nextDisabled = !u.disabled;
+        return {
+          ...u,
+          disabled: nextDisabled,
+          status: nextDisabled ? 'Disabled' : 'Active'
+        };
+      }
+      return u;
+    }));
   };
 
   const addUser = (u: Omit<UserProfile, 'id'>) => {
@@ -386,6 +466,10 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const deleteUser = (id: string) => {
+    const target = users.find(u => u.id === id);
+    if (target && target.email.trim().toLowerCase() === 'ar.khanaamir@gmail.com') {
+      return; // Cannot delete the Managing Owner
+    }
     setUsers(prev => prev.filter(u => u.id !== id));
     if (currentUser && currentUser.id === id) {
       logout();
@@ -447,6 +531,40 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const updateWorker = (id: string, updates: Partial<Worker>) => {
     setWorkers(prev => prev.map(w => w.id === id ? { ...w, ...updates } : w));
+  };
+
+  const deleteWorker = (id: string) => {
+    setWorkers(prev => prev.filter(w => w.id !== id));
+  };
+
+  const toggleWorkerBlacklist = (id: string, reason?: string) => {
+    setWorkers(prev => prev.map(w => {
+      if (w.id === id) {
+        const nextBlacklisted = !w.isBlacklisted;
+        return {
+          ...w,
+          isBlacklisted: nextBlacklisted,
+          blacklistReason: nextBlacklisted ? (reason || 'Flagged and blacklisted by Managing Owner Ar. Aamir Khan.') : undefined,
+          status: nextBlacklisted ? 'Inactive' : 'Active',
+          disabled: nextBlacklisted ? true : w.disabled
+        };
+      }
+      return w;
+    }));
+  };
+
+  const toggleWorkerDisabled = (id: string) => {
+    setWorkers(prev => prev.map(w => {
+      if (w.id === id) {
+        const nextDisabled = !w.disabled;
+        return {
+          ...w,
+          disabled: nextDisabled,
+          status: nextDisabled ? 'Inactive' : 'Active'
+        };
+      }
+      return w;
+    }));
   };
 
   const markAttendance = (workerId: string, status: 'Present' | 'Half Day' | 'Absent', workAssigned: string) => {
@@ -643,12 +761,53 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       category: v.category || 'Material Supplier',
       contactPerson: v.contactPerson || '',
       phone: v.phone || '',
+      email: v.email,
+      address: v.address,
+      gstin: v.gstin,
       totalBilled: Number(v.totalBilled) || 0,
       totalPaid: Number(v.totalPaid) || 0,
       balanceOutstanding: Number(v.balanceOutstanding) || 0,
-      status: 'Active'
+      status: 'Active',
+      isBlacklisted: false,
+      disabled: false
     };
     setVendors(prev => [...prev, newVendor]);
+  };
+
+  const updateVendor = (id: string, updates: Partial<Vendor>) => {
+    setVendors(prev => prev.map(v => v.id === id ? { ...v, ...updates } : v));
+  };
+
+  const deleteVendor = (id: string) => {
+    setVendors(prev => prev.filter(v => v.id !== id));
+  };
+
+  const toggleVendorBlacklist = (id: string, reason?: string) => {
+    setVendors(prev => prev.map(v => {
+      if (v.id === id) {
+        const nextBlacklisted = !v.isBlacklisted;
+        return {
+          ...v,
+          isBlacklisted: nextBlacklisted,
+          blacklistReason: nextBlacklisted ? (reason || 'Disqualified and blacklisted by Managing Owner Ar. Aamir Khan.') : undefined,
+          disabled: nextBlacklisted ? true : v.disabled
+        };
+      }
+      return v;
+    }));
+  };
+
+  const toggleVendorDisabled = (id: string) => {
+    setVendors(prev => prev.map(v => {
+      if (v.id === id) {
+        const nextDisabled = !v.disabled;
+        return {
+          ...v,
+          disabled: nextDisabled
+        };
+      }
+      return v;
+    }));
   };
 
   const recordVendorPayment = (vendorId: string, amount: number, paymentMode: string) => {
@@ -742,6 +901,7 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         updateUserProfile,
         addUser,
         deleteUser,
+        toggleUserDisabled,
         currentRole,
         setRole,
         activeProjectId,
@@ -753,6 +913,9 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         workers,
         addWorker,
         updateWorker,
+        deleteWorker,
+        toggleWorkerBlacklist,
+        toggleWorkerDisabled,
         attendance,
         markAttendance,
         dailyReports,
@@ -766,6 +929,10 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         addExpense,
         vendors,
         addVendor,
+        updateVendor,
+        deleteVendor,
+        toggleVendorBlacklist,
+        toggleVendorDisabled,
         recordVendorPayment,
         settleVendorPayment: (id, amt, mode) => recordVendorPayment(id, amt, mode || 'UPI'),
         quotes,
