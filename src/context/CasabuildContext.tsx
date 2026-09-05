@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { onAuthStateChanged, signInWithPopup, signOut, User as FirebaseUser } from 'firebase/auth';
+import { onAuthStateChanged, signInWithPopup, signOut, signInAnonymously, User as FirebaseUser } from 'firebase/auth';
 import { auth, googleProvider } from '../firebase';
 import {
   writeDocumentToCloud,
@@ -95,11 +95,13 @@ interface CasabuildContextType {
   cloudSyncStatus: CloudSyncStatus;
   firebaseUser: FirebaseUser | null;
   signInWithGoogle: () => Promise<void>;
+  signInDirectCloud: () => Promise<void>;
   signOutGoogle: () => Promise<void>;
   syncAllToCloud: () => Promise<{ success: boolean; message: string }>;
   fetchLatestFromCloud: () => Promise<void>;
   lastCloudSyncTime: string | null;
   cloudSyncError: string | null;
+  unauthorizedDomain: string | null;
 }
 
 const CasabuildContext = createContext<CasabuildContextType | null>(null);
@@ -325,6 +327,7 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [cloudSyncStatus, setCloudSyncStatus] = useState<CloudSyncStatus>('needs_login');
   const [lastCloudSyncTime, setLastCloudSyncTime] = useState<string | null>(null);
   const [cloudSyncError, setCloudSyncError] = useState<string | null>(null);
+  const [unauthorizedDomain, setUnauthorizedDomain] = useState<string | null>(null);
 
   // Monitor Firebase Authentication State
   useEffect(() => {
@@ -333,6 +336,7 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (user) {
         setCloudSyncStatus('synced');
         setLastCloudSyncTime(new Date().toLocaleTimeString());
+        setUnauthorizedDomain(null);
       } else {
         setCloudSyncStatus('needs_login');
       }
@@ -398,11 +402,14 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const signInWithGoogle = async () => {
     setCloudSyncStatus('syncing');
+    setCloudSyncError(null);
+    setUnauthorizedDomain(null);
     try {
       const cred = await signInWithPopup(auth, googleProvider);
       setFirebaseUser(cred.user);
       setCloudSyncStatus('synced');
       setLastCloudSyncTime(new Date().toLocaleTimeString());
+      setUnauthorizedDomain(null);
 
       // If user email matches or needs login, link:
       if (cred.user.email) {
@@ -435,8 +442,33 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
     } catch (err: any) {
       console.error('Google Sign-In failed:', err);
+      const isUnauthorized = err.code === 'auth/unauthorized-domain' || err.message?.includes('unauthorized-domain');
+      const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
+      if (isUnauthorized) {
+        setUnauthorizedDomain(hostname);
+        setCloudSyncStatus('error');
+        setCloudSyncError(`Firebase Error (auth/unauthorized-domain): Current domain "${hostname}" must be authorized in Firebase Console.`);
+      } else {
+        setCloudSyncStatus('error');
+        setCloudSyncError(err.message || 'Google authentication failed');
+      }
+      throw err;
+    }
+  };
+
+  const signInDirectCloud = async () => {
+    setCloudSyncStatus('syncing');
+    setCloudSyncError(null);
+    try {
+      const cred = await signInAnonymously(auth);
+      setFirebaseUser(cred.user);
+      setCloudSyncStatus('synced');
+      setLastCloudSyncTime(new Date().toLocaleTimeString());
+      setUnauthorizedDomain(null);
+    } catch (err: any) {
+      console.error('Direct Cloud Sign-In failed:', err);
       setCloudSyncStatus('error');
-      setCloudSyncError(err.message || 'Google authentication failed');
+      setCloudSyncError(err.message || 'Direct cloud authentication failed');
       throw err;
     }
   };
@@ -446,6 +478,7 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       await signOut(auth);
       setFirebaseUser(null);
       setCloudSyncStatus('needs_login');
+      setUnauthorizedDomain(null);
     } catch (err: any) {
       console.error('Google Sign-Out failed:', err);
     }
@@ -453,7 +486,12 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const syncAllToCloud = async (): Promise<{ success: boolean; message: string }> => {
     if (!auth.currentUser) {
-      return { success: false, message: 'Please sign in with Google first to authorize cloud synchronization.' };
+      try {
+        const cred = await signInAnonymously(auth);
+        setFirebaseUser(cred.user);
+      } catch (err: any) {
+        return { success: false, message: 'Please sign in with Google or use Direct Cloud Connect to authorize sync.' };
+      }
     }
     setCloudSyncStatus('syncing');
     try {
@@ -484,7 +522,15 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const fetchLatestFromCloud = async () => {
-    if (!auth.currentUser) return;
+    if (!auth.currentUser) {
+      try {
+        const cred = await signInAnonymously(auth);
+        setFirebaseUser(cred.user);
+      } catch (err: any) {
+        console.debug('Background auth for fetch skipped:', err.message);
+        return;
+      }
+    }
     setCloudSyncStatus('syncing');
     try {
       const cloudData = await fetchFullCloudSnapshot();
@@ -544,6 +590,19 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
     setCurrentUser(updatedUser);
     setRoleState(updatedUser.role);
+
+    // Attempt direct background cloud authentication for instant sync
+    if (!auth.currentUser) {
+      signInAnonymously(auth).then(cred => {
+        setFirebaseUser(cred.user);
+        setCloudSyncStatus('synced');
+        setLastCloudSyncTime(new Date().toLocaleTimeString());
+        setUnauthorizedDomain(null);
+      }).catch(err => {
+        console.debug('Background anonymous auth note:', err.message);
+      });
+    }
+
     return { success: true };
   };
 
@@ -1231,11 +1290,13 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         cloudSyncStatus,
         firebaseUser,
         signInWithGoogle,
+        signInDirectCloud,
         signOutGoogle,
         syncAllToCloud,
         fetchLatestFromCloud,
         lastCloudSyncTime,
         cloudSyncError,
+        unauthorizedDomain,
       }}
     >
       {children}

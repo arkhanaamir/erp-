@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useCasabuild } from '../context/CasabuildContext';
+import { DomainAuthNotice } from './DomainAuthNotice';
 import {
   Cloud,
   CloudCheck,
@@ -14,6 +15,7 @@ import {
   Smartphone,
   ArrowRight,
   Database,
+  Zap,
   X
 } from 'lucide-react';
 
@@ -27,11 +29,13 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({ isOpen, onClose 
     cloudSyncStatus,
     firebaseUser,
     signInWithGoogle,
+    signInDirectCloud,
     signOutGoogle,
     syncAllToCloud,
     fetchLatestFromCloud,
     lastCloudSyncTime,
     cloudSyncError,
+    unauthorizedDomain,
     projects,
     workers,
     dailyReports,
@@ -54,9 +58,31 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({ isOpen, onClose 
         message: 'Successfully authenticated with Google Cloud! Real-time synchronization is now active.'
       });
     } catch (err: any) {
+      const isUnauth = err.code === 'auth/unauthorized-domain' || err.message?.includes('unauthorized-domain');
       setActionFeedback({
         type: 'error',
-        message: err.message || 'Failed to authenticate with Google.'
+        message: isUnauth
+          ? 'Domain authorization needed in Firebase Console. See details below.'
+          : (err.message || 'Failed to authenticate with Google.')
+      });
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  const handleDirectConnect = async () => {
+    setLoadingAction('direct');
+    setActionFeedback(null);
+    try {
+      await signInDirectCloud();
+      setActionFeedback({
+        type: 'success',
+        message: 'Direct Cloud session established! Firestore synchronization is now active.'
+      });
+    } catch (err: any) {
+      setActionFeedback({
+        type: 'error',
+        message: err.message || 'Direct cloud connection failed.'
       });
     } finally {
       setLoadingAction(null);
@@ -181,20 +207,40 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({ isOpen, onClose 
                   Disconnect
                 </button>
               ) : (
-                <button
-                  onClick={handleSignIn}
-                  disabled={loadingAction === 'signin'}
-                  className="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold transition flex items-center space-x-1"
-                >
-                  {loadingAction === 'signin' ? (
-                    <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <span>Sign In with Google</span>
-                  )}
-                </button>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={handleDirectConnect}
+                    disabled={loadingAction === 'direct'}
+                    className="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 text-xs font-medium transition flex items-center space-x-1"
+                    title="Connect directly to cloud without Google popup"
+                  >
+                    {loadingAction === 'direct' ? (
+                      <RefreshCw className="h-3.5 w-3.5 animate-spin text-amber-400" />
+                    ) : (
+                      <Zap className="h-3.5 w-3.5 text-amber-400" />
+                    )}
+                    <span>Direct Connect</span>
+                  </button>
+                  <button
+                    onClick={handleSignIn}
+                    disabled={loadingAction === 'signin'}
+                    className="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold transition flex items-center space-x-1"
+                  >
+                    {loadingAction === 'signin' ? (
+                      <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <span>Sign In with Google</span>
+                    )}
+                  </button>
+                </div>
               )}
             </div>
           </div>
+
+          {/* Domain Authorization Guidance Banner */}
+          {(unauthorizedDomain || actionFeedback?.message?.includes('unauthorized-domain') || cloudSyncError?.includes('unauthorized-domain')) && (
+            <DomainAuthNotice onRetryGoogle={handleSignIn} />
+          )}
 
           {/* Device Sync Info Card */}
           <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3.5 flex items-start space-x-3">
