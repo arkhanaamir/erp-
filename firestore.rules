@@ -1,0 +1,169 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && (request.auth.token.email_verified == true || request.auth.token.firebase.sign_in_provider == 'google.com');
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Projects collection
+    match /projects/{projectId} {
+      allow read: if isVerifiedUser();
+      allow create: if isVerifiedUser() && isValidId(projectId)
+        && incoming().name is string && incoming().name.size() <= 200
+        && incoming().clientName is string && incoming().clientName.size() <= 150
+        && incoming().status is string && incoming().status.size() <= 50;
+      allow update: if isVerifiedUser() && isValidId(projectId)
+        && incoming().name is string && incoming().name.size() <= 200
+        && incoming().status is string && incoming().status.size() <= 50;
+      allow delete: if isVerifiedUser() && isValidId(projectId);
+    }
+
+    // Workers roster
+    match /workers/{workerId} {
+      allow read: if isVerifiedUser();
+      allow create: if isVerifiedUser() && isValidId(workerId)
+        && incoming().name is string && incoming().name.size() <= 150
+        && incoming().trade is string && incoming().trade.size() <= 80
+        && incoming().status is string && incoming().status.size() <= 50;
+      allow update: if isVerifiedUser() && isValidId(workerId)
+        && incoming().name is string && incoming().name.size() <= 150
+        && incoming().status is string && incoming().status.size() <= 50;
+      allow delete: if isVerifiedUser() && isValidId(workerId);
+    }
+
+    // Attendance logs
+    match /attendance/{attendanceId} {
+      allow read: if isVerifiedUser();
+      allow create: if isVerifiedUser() && isValidId(attendanceId)
+        && incoming().workerId is string && incoming().workerId.size() <= 128
+        && incoming().status is string && incoming().status.size() <= 30;
+      allow update: if isVerifiedUser() && isValidId(attendanceId)
+        && incoming().status is string && incoming().status.size() <= 30;
+      allow delete: if isVerifiedUser() && isValidId(attendanceId);
+    }
+
+    // Daily Site Reports (DSR)
+    match /dailyReports/{reportId} {
+      allow read: if isVerifiedUser();
+      allow create: if isVerifiedUser() && isValidId(reportId)
+        && incoming().projectId is string && incoming().projectId.size() <= 128
+        && incoming().supervisorName is string && incoming().supervisorName.size() <= 150
+        && incoming().todaysWork is string && incoming().todaysWork.size() <= 2000;
+      allow update: if isVerifiedUser() && isValidId(reportId)
+        && incoming().todaysWork is string && incoming().todaysWork.size() <= 2000;
+      allow delete: if isVerifiedUser() && isValidId(reportId);
+    }
+
+    // Materials inventory
+    match /materials/{materialId} {
+      allow read: if isVerifiedUser();
+      allow create: if isVerifiedUser() && isValidId(materialId)
+        && incoming().name is string && incoming().name.size() <= 150
+        && incoming().category is string && incoming().category.size() <= 80
+        && incoming().unit is string && incoming().unit.size() <= 30;
+      allow update: if isVerifiedUser() && isValidId(materialId)
+        && incoming().name is string && incoming().name.size() <= 150;
+      allow delete: if isVerifiedUser() && isValidId(materialId);
+    }
+
+    // Material Inward & Outward Transactions
+    match /materialTransactions/{transactionId} {
+      allow read: if isVerifiedUser();
+      allow create: if isVerifiedUser() && isValidId(transactionId)
+        && incoming().materialId is string && incoming().materialId.size() <= 128
+        && incoming().type is string && incoming().type.size() <= 30;
+      allow update: if isVerifiedUser() && isValidId(transactionId);
+      allow delete: if isVerifiedUser() && isValidId(transactionId);
+    }
+
+    // Site expense vouchers
+    match /expenses/{expenseId} {
+      allow read: if isVerifiedUser();
+      allow create: if isVerifiedUser() && isValidId(expenseId)
+        && incoming().category is string && incoming().category.size() <= 100
+        && incoming().status is string && incoming().status.size() <= 50;
+      allow update: if isVerifiedUser() && isValidId(expenseId)
+        && incoming().status is string && incoming().status.size() <= 50;
+      allow delete: if isVerifiedUser() && isValidId(expenseId);
+    }
+
+    // Vendor and contractor ledgers
+    match /vendors/{vendorId} {
+      allow read: if isVerifiedUser();
+      allow create: if isVerifiedUser() && isValidId(vendorId)
+        && incoming().name is string && incoming().name.size() <= 150
+        && incoming().category is string && incoming().category.size() <= 100
+        && incoming().phone is string && incoming().phone.size() <= 30;
+      allow update: if isVerifiedUser() && isValidId(vendorId)
+        && incoming().name is string && incoming().name.size() <= 150;
+      allow delete: if isVerifiedUser() && isValidId(vendorId);
+    }
+
+    // Quotes and BOQ estimates
+    match /quotes/{quoteId} {
+      allow read: if isVerifiedUser();
+      allow create: if isVerifiedUser() && isValidId(quoteId)
+        && incoming().clientName is string && incoming().clientName.size() <= 150
+        && incoming().status is string && incoming().status.size() <= 50;
+      allow update: if isVerifiedUser() && isValidId(quoteId)
+        && incoming().status is string && incoming().status.size() <= 50;
+      allow delete: if isVerifiedUser() && isValidId(quoteId);
+    }
+
+    // Interior finishes and selections
+    match /interiorSelections/{selectionId} {
+      allow read: if isVerifiedUser();
+      allow create: if isVerifiedUser() && isValidId(selectionId)
+        && incoming().category is string && incoming().category.size() <= 80
+        && incoming().name is string && incoming().name.size() <= 150
+        && incoming().status is string && incoming().status.size() <= 50;
+      allow update: if isVerifiedUser() && isValidId(selectionId)
+        && incoming().status is string && incoming().status.size() <= 50;
+      allow delete: if isVerifiedUser() && isValidId(selectionId);
+    }
+
+    // Site photos
+    match /sitePhotos/{photoId} {
+      allow read: if isVerifiedUser();
+      allow create: if isVerifiedUser() && isValidId(photoId)
+        && incoming().projectId is string && incoming().projectId.size() <= 128
+        && incoming().photoUrl is string && incoming().photoUrl.size() <= 1000;
+      allow update: if isVerifiedUser() && isValidId(photoId);
+      allow delete: if isVerifiedUser() && isValidId(photoId);
+    }
+
+    // User profiles registry
+    match /users/{userId} {
+      allow read: if isVerifiedUser();
+      allow create: if isVerifiedUser() && isValidId(userId)
+        && incoming().name is string && incoming().name.size() <= 150
+        && incoming().email is string && incoming().email.size() <= 150
+        && incoming().role is string && incoming().role.size() <= 50;
+      allow update: if isVerifiedUser() && isValidId(userId)
+        && incoming().name is string && incoming().name.size() <= 150;
+      allow delete: if isVerifiedUser() && isValidId(userId);
+    }
+  }
+}

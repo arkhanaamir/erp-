@@ -1,0 +1,257 @@
+{
+  "entities": {
+    "project": {
+      "title": "Project",
+      "description": "Construction projects managed in Casabuild ERP",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 200 },
+        "code": { "type": "string", "maxLength": 50 },
+        "clientName": { "type": "string", "maxLength": 150 },
+        "location": { "type": "string", "maxLength": 200 },
+        "type": { "type": "string", "maxLength": 100 },
+        "status": { "type": "string", "maxLength": 50 },
+        "overallProgress": { "type": "number" },
+        "budget": { "type": "number" },
+        "contractValue": { "type": "number" },
+        "areaSqFt": { "type": "number" },
+        "startDate": { "type": "string", "maxLength": 30 },
+        "expectedCompletion": { "type": "string", "maxLength": 30 }
+      },
+      "required": ["id", "name", "clientName", "status"]
+    },
+    "worker": {
+      "title": "Worker",
+      "description": "Site workforce and artisans",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 150 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "trade": { "type": "string", "maxLength": 80 },
+        "dailyWage": { "type": "number" },
+        "status": { "type": "string", "maxLength": 50 },
+        "totalDaysWorked": { "type": "number" },
+        "advanceReceived": { "type": "number" },
+        "pendingWage": { "type": "number" }
+      },
+      "required": ["id", "name", "trade", "dailyWage", "status"]
+    },
+    "attendanceRecord": {
+      "title": "AttendanceRecord",
+      "description": "Daily labour attendance entry",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "workerId": { "type": "string", "maxLength": 128 },
+        "workerName": { "type": "string", "maxLength": 150 },
+        "date": { "type": "string", "maxLength": 30 },
+        "status": { "type": "string", "maxLength": 30 },
+        "workAssigned": { "type": "string", "maxLength": 200 },
+        "markedBy": { "type": "string", "maxLength": 150 }
+      },
+      "required": ["id", "workerId", "date", "status"]
+    },
+    "dailySiteReport": {
+      "title": "DailySiteReport",
+      "description": "Daily Site Progress Report (DSR)",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "projectId": { "type": "string", "maxLength": 128 },
+        "projectName": { "type": "string", "maxLength": 200 },
+        "date": { "type": "string", "maxLength": 30 },
+        "supervisorName": { "type": "string", "maxLength": 150 },
+        "weather": { "type": "string", "maxLength": 50 },
+        "temperature": { "type": "string", "maxLength": 30 },
+        "workersCount": { "type": "number" },
+        "progressPercentage": { "type": "number" },
+        "todaysWork": { "type": "string", "maxLength": 2000 },
+        "issues": { "type": "string", "maxLength": 1000 },
+        "tomorrowPlan": { "type": "string", "maxLength": 1000 }
+      },
+      "required": ["id", "projectId", "date", "supervisorName", "todaysWork"]
+    },
+    "materialItem": {
+      "title": "MaterialItem",
+      "description": "Inventory stock catalog item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 150 },
+        "category": { "type": "string", "maxLength": 80 },
+        "currentBalance": { "type": "number" },
+        "unit": { "type": "string", "maxLength": 30 },
+        "unitCost": { "type": "number" },
+        "minStockLevel": { "type": "number" },
+        "status": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "name", "category", "unit", "unitCost"]
+    },
+    "materialTransaction": {
+      "title": "MaterialTransaction",
+      "description": "Stock receipt (GRN) or consumption log",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "materialId": { "type": "string", "maxLength": 128 },
+        "materialName": { "type": "string", "maxLength": 150 },
+        "type": { "type": "string", "maxLength": 30 },
+        "quantity": { "type": "number" },
+        "date": { "type": "string", "maxLength": 30 },
+        "vendor": { "type": "string", "maxLength": 150 },
+        "poNumber": { "type": "string", "maxLength": 100 },
+        "notes": { "type": "string", "maxLength": 500 }
+      },
+      "required": ["id", "materialId", "type", "quantity", "date"]
+    },
+    "expenseRecord": {
+      "title": "ExpenseRecord",
+      "description": "Site operational expense disbursement",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "projectId": { "type": "string", "maxLength": 128 },
+        "projectName": { "type": "string", "maxLength": 200 },
+        "date": { "type": "string", "maxLength": 30 },
+        "category": { "type": "string", "maxLength": 100 },
+        "vendorPayee": { "type": "string", "maxLength": 150 },
+        "amount": { "type": "number" },
+        "paymentMode": { "type": "string", "maxLength": 50 },
+        "receiptNumber": { "type": "string", "maxLength": 100 },
+        "status": { "type": "string", "maxLength": 50 },
+        "paidBy": { "type": "string", "maxLength": 150 }
+      },
+      "required": ["id", "amount", "date", "category", "status"]
+    },
+    "vendor": {
+      "title": "Vendor",
+      "description": "Trade vendor and contractor ledger",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 150 },
+        "category": { "type": "string", "maxLength": 100 },
+        "contactPerson": { "type": "string", "maxLength": 150 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "totalBilled": { "type": "number" },
+        "paidAmount": { "type": "number" },
+        "pendingAmount": { "type": "number" },
+        "isBlacklisted": { "type": "boolean" }
+      },
+      "required": ["id", "name", "category", "phone"]
+    },
+    "quoteEstimate": {
+      "title": "QuoteEstimate",
+      "description": "Generated client quotation and BOQ estimate",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "clientName": { "type": "string", "maxLength": 150 },
+        "projectType": { "type": "string", "maxLength": 100 },
+        "totalAreaSqFt": { "type": "number" },
+        "totalAmount": { "type": "number" },
+        "date": { "type": "string", "maxLength": 30 },
+        "status": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "clientName", "totalAmount", "date"]
+    },
+    "interiorSelectionItem": {
+      "title": "InteriorSelectionItem",
+      "description": "Interior finish, shade, and fixture selection",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "projectId": { "type": "string", "maxLength": 128 },
+        "category": { "type": "string", "maxLength": 80 },
+        "name": { "type": "string", "maxLength": 150 },
+        "specifications": { "type": "string", "maxLength": 300 },
+        "selectedOption": { "type": "string", "maxLength": 150 },
+        "status": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "category", "name", "status"]
+    },
+    "sitePhotoItem": {
+      "title": "SitePhotoItem",
+      "description": "Geo-tagged progress visual asset",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "projectId": { "type": "string", "maxLength": 128 },
+        "projectName": { "type": "string", "maxLength": 200 },
+        "title": { "type": "string", "maxLength": 200 },
+        "category": { "type": "string", "maxLength": 80 },
+        "stage": { "type": "string", "maxLength": 100 },
+        "photoUrl": { "type": "string", "maxLength": 1000 },
+        "date": { "type": "string", "maxLength": 30 },
+        "capturedBy": { "type": "string", "maxLength": 150 }
+      },
+      "required": ["id", "projectId", "photoUrl", "date"]
+    },
+    "userProfile": {
+      "title": "UserProfile",
+      "description": "Registered team member user account",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 150 },
+        "email": { "type": "string", "maxLength": 150 },
+        "role": { "type": "string", "maxLength": 50 },
+        "designation": { "type": "string", "maxLength": 150 },
+        "phone": { "type": "string", "maxLength": 30 }
+      },
+      "required": ["id", "name", "email", "role"]
+    }
+  },
+  "firestore": {
+    "/projects/{projectId}": {
+      "schema": "project",
+      "description": "Active construction projects directory"
+    },
+    "/workers/{workerId}": {
+      "schema": "worker",
+      "description": "Labour workforce and contractor rosters"
+    },
+    "/attendance/{attendanceId}": {
+      "schema": "attendanceRecord",
+      "description": "Daily labour muster roll attendance entries"
+    },
+    "/dailyReports/{reportId}": {
+      "schema": "dailySiteReport",
+      "description": "Daily site reports (DSR) submitted by site engineers"
+    },
+    "/materials/{materialId}": {
+      "schema": "materialItem",
+      "description": "Raw material inventory catalog and stock balance"
+    },
+    "/materialTransactions/{transactionId}": {
+      "schema": "materialTransaction",
+      "description": "Material inward receipt and site consumption logs"
+    },
+    "/expenses/{expenseId}": {
+      "schema": "expenseRecord",
+      "description": "Site operational expense vouchers and petty cash disbursements"
+    },
+    "/vendors/{vendorId}": {
+      "schema": "vendor",
+      "description": "Vendors, suppliers, and subcontractors billing ledgers"
+    },
+    "/quotes/{quoteId}": {
+      "schema": "quoteEstimate",
+      "description": "Generated BOQ estimates and client quotations"
+    },
+    "/interiorSelections/{selectionId}": {
+      "schema": "interiorSelectionItem",
+      "description": "Interior design finishes, shades, and fixture approval schedule"
+    },
+    "/sitePhotos/{photoId}": {
+      "schema": "sitePhotoItem",
+      "description": "Site progress photos with geo-location metadata"
+    },
+    "/users/{userId}": {
+      "schema": "userProfile",
+      "description": "Casabuild enterprise user profiles and access roles"
+    }
+  }
+}

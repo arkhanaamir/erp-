@@ -270,6 +270,8 @@ export interface QuoteEstimateRequest {
   location?: string;
 }
 
+export type CloudSyncStatus = 'synced' | 'syncing' | 'offline' | 'needs_login' | 'error';
+
 export interface QuoteEstimateResponse {
   projectTitle: string;
   clientName: string;

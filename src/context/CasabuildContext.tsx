@@ -1,4 +1,14 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { onAuthStateChanged, signInWithPopup, signOut, User as FirebaseUser } from 'firebase/auth';
+import { auth, googleProvider } from '../firebase';
+import {
+  writeDocumentToCloud,
+  deleteDocumentFromCloud,
+  uploadAllToCloud,
+  subscribeToAllCollections,
+  fetchFullCloudSnapshot,
+  CasabuildCloudState
+} from '../services/cloudSync';
 import {
   UserRole,
   Project,
@@ -13,6 +23,7 @@ import {
   InteriorSelectionItem,
   SitePhotoItem,
   UserProfile,
+  CloudSyncStatus,
 } from '../types';
 import {
   INITIAL_PROJECTS,
@@ -81,6 +92,14 @@ interface CasabuildContextType {
   sitePhotos: SitePhotoItem[];
   addSitePhoto: (p: Partial<SitePhotoItem>) => void;
   resetToDefaults: () => void;
+  cloudSyncStatus: CloudSyncStatus;
+  firebaseUser: FirebaseUser | null;
+  signInWithGoogle: () => Promise<void>;
+  signOutGoogle: () => Promise<void>;
+  syncAllToCloud: () => Promise<{ success: boolean; message: string }>;
+  fetchLatestFromCloud: () => Promise<void>;
+  lastCloudSyncTime: string | null;
+  cloudSyncError: string | null;
 }
 
 const CasabuildContext = createContext<CasabuildContextType | null>(null);
@@ -301,6 +320,196 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   }, [currentUser]);
 
+  // Firebase Cloud Synchronization State
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+  const [cloudSyncStatus, setCloudSyncStatus] = useState<CloudSyncStatus>('needs_login');
+  const [lastCloudSyncTime, setLastCloudSyncTime] = useState<string | null>(null);
+  const [cloudSyncError, setCloudSyncError] = useState<string | null>(null);
+
+  // Monitor Firebase Authentication State
+  useEffect(() => {
+    const unsubAuth = onAuthStateChanged(auth, (user) => {
+      setFirebaseUser(user);
+      if (user) {
+        setCloudSyncStatus('synced');
+        setLastCloudSyncTime(new Date().toLocaleTimeString());
+      } else {
+        setCloudSyncStatus('needs_login');
+      }
+    });
+    return () => unsubAuth();
+  }, []);
+
+  // Real-time Firestore Cloud Subscriptions (multi-device listener)
+  useEffect(() => {
+    if (!firebaseUser) return;
+
+    setCloudSyncStatus('syncing');
+    const unsubCollections = subscribeToAllCollections(
+      (updatedState) => {
+        if (updatedState.projects && updatedState.projects.length > 0) {
+          setProjects(updatedState.projects);
+        }
+        if (updatedState.workers && updatedState.workers.length > 0) {
+          setWorkers(updatedState.workers);
+        }
+        if (updatedState.attendance && updatedState.attendance.length > 0) {
+          setAttendance(updatedState.attendance);
+        }
+        if (updatedState.dailyReports && updatedState.dailyReports.length > 0) {
+          setDailyReports(updatedState.dailyReports);
+        }
+        if (updatedState.materials && updatedState.materials.length > 0) {
+          setMaterials(updatedState.materials);
+        }
+        if (updatedState.transactions && updatedState.transactions.length > 0) {
+          setTransactions(updatedState.transactions);
+        }
+        if (updatedState.expenses && updatedState.expenses.length > 0) {
+          setExpenses(updatedState.expenses);
+        }
+        if (updatedState.vendors && updatedState.vendors.length > 0) {
+          setVendors(updatedState.vendors);
+        }
+        if (updatedState.quotes && updatedState.quotes.length > 0) {
+          setQuotes(updatedState.quotes);
+        }
+        if (updatedState.selections && updatedState.selections.length > 0) {
+          setSelections(updatedState.selections);
+        }
+        if (updatedState.sitePhotos && updatedState.sitePhotos.length > 0) {
+          setSitePhotos(updatedState.sitePhotos);
+        }
+        if (updatedState.users && updatedState.users.length > 0) {
+          setUsers(normalizeOwnerRules(updatedState.users));
+        }
+        setCloudSyncStatus('synced');
+        setLastCloudSyncTime(new Date().toLocaleTimeString());
+      },
+      (err) => {
+        console.warn('Realtime cloud sync error:', err);
+        setCloudSyncStatus('error');
+        setCloudSyncError(err.message || 'Cloud sync error');
+      }
+    );
+
+    return () => unsubCollections();
+  }, [firebaseUser]);
+
+  const signInWithGoogle = async () => {
+    setCloudSyncStatus('syncing');
+    try {
+      const cred = await signInWithPopup(auth, googleProvider);
+      setFirebaseUser(cred.user);
+      setCloudSyncStatus('synced');
+      setLastCloudSyncTime(new Date().toLocaleTimeString());
+
+      // If user email matches or needs login, link:
+      if (cred.user.email) {
+        const email = cred.user.email.toLowerCase();
+        const existing = users.find(u => u.email.toLowerCase() === email);
+        if (existing) {
+          setCurrentUser(existing);
+          setRoleState(existing.role);
+        } else {
+          const isAamir = email === 'ar.khanaamir@gmail.com';
+          const newU: UserProfile = {
+            id: `usr-${Date.now()}`,
+            name: cred.user.displayName || 'Casabuild User',
+            email: cred.user.email,
+            role: isAamir ? 'owner' : 'architect',
+            designation: isAamir ? 'Managing Owner & Principal Architect' : 'Project Architect',
+            phone: cred.user.phoneNumber || '+91 98100 12345',
+            avatar: cred.user.photoURL || undefined,
+            companyOrAffiliation: 'The Casabuild Group',
+            assignedProjects: ['ALL'],
+            permissions: ['Executive Full Control', 'Financials & BOQ', 'Site Operations'],
+            status: 'Active',
+            lastLogin: new Date().toISOString().replace('T', ' ').slice(0, 16)
+          };
+          setUsers(prev => [newU, ...prev]);
+          setCurrentUser(newU);
+          setRoleState(newU.role);
+          writeDocumentToCloud('users', newU.id, newU);
+        }
+      }
+    } catch (err: any) {
+      console.error('Google Sign-In failed:', err);
+      setCloudSyncStatus('error');
+      setCloudSyncError(err.message || 'Google authentication failed');
+      throw err;
+    }
+  };
+
+  const signOutGoogle = async () => {
+    try {
+      await signOut(auth);
+      setFirebaseUser(null);
+      setCloudSyncStatus('needs_login');
+    } catch (err: any) {
+      console.error('Google Sign-Out failed:', err);
+    }
+  };
+
+  const syncAllToCloud = async (): Promise<{ success: boolean; message: string }> => {
+    if (!auth.currentUser) {
+      return { success: false, message: 'Please sign in with Google first to authorize cloud synchronization.' };
+    }
+    setCloudSyncStatus('syncing');
+    try {
+      const currentState: CasabuildCloudState = {
+        projects,
+        workers,
+        attendance,
+        dailyReports,
+        materials,
+        transactions,
+        expenses,
+        vendors,
+        quotes,
+        selections,
+        sitePhotos,
+        users
+      };
+      const res = await uploadAllToCloud(currentState);
+      setLastCloudSyncTime(new Date().toLocaleTimeString());
+      setCloudSyncStatus('synced');
+      return { success: true, message: `Successfully synchronized ${res.count} records to Firebase Firestore Cloud!` };
+    } catch (err: any) {
+      console.error('Cloud upload error:', err);
+      setCloudSyncStatus('error');
+      setCloudSyncError(err.message || 'Failed to sync to cloud');
+      return { success: false, message: err.message || 'Failed to sync records to cloud' };
+    }
+  };
+
+  const fetchLatestFromCloud = async () => {
+    if (!auth.currentUser) return;
+    setCloudSyncStatus('syncing');
+    try {
+      const cloudData = await fetchFullCloudSnapshot();
+      if (cloudData.projects && cloudData.projects.length) setProjects(cloudData.projects);
+      if (cloudData.workers && cloudData.workers.length) setWorkers(cloudData.workers);
+      if (cloudData.attendance && cloudData.attendance.length) setAttendance(cloudData.attendance);
+      if (cloudData.dailyReports && cloudData.dailyReports.length) setDailyReports(cloudData.dailyReports);
+      if (cloudData.materials && cloudData.materials.length) setMaterials(cloudData.materials);
+      if (cloudData.transactions && cloudData.transactions.length) setTransactions(cloudData.transactions);
+      if (cloudData.expenses && cloudData.expenses.length) setExpenses(cloudData.expenses);
+      if (cloudData.vendors && cloudData.vendors.length) setVendors(cloudData.vendors);
+      if (cloudData.quotes && cloudData.quotes.length) setQuotes(cloudData.quotes);
+      if (cloudData.selections && cloudData.selections.length) setSelections(cloudData.selections);
+      if (cloudData.sitePhotos && cloudData.sitePhotos.length) setSitePhotos(cloudData.sitePhotos);
+      if (cloudData.users && cloudData.users.length) setUsers(normalizeOwnerRules(cloudData.users));
+
+      setLastCloudSyncTime(new Date().toLocaleTimeString());
+      setCloudSyncStatus('synced');
+    } catch (err: any) {
+      setCloudSyncStatus('error');
+      setCloudSyncError(err.message || 'Fetch failed');
+      throw err;
+    }
+  };
+
   // Authentication & Profile Services
   const login = (email: string, password: string): { success: boolean; error?: string } => {
     const cleanEmail = email.trim().toLowerCase();
@@ -507,10 +716,16 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     };
     setProjects(prev => [newProj, ...prev]);
     setActiveProjectId(newProj.id);
+    writeDocumentToCloud('projects', newProj.id, newProj);
   };
 
   const updateProject = (id: string, updates: Partial<Project>) => {
-    setProjects(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+    setProjects(prev => {
+      const next = prev.map(p => p.id === id ? { ...p, ...updates } : p);
+      const updated = next.find(p => p.id === id);
+      if (updated) writeDocumentToCloud('projects', id, updated);
+      return next;
+    });
   };
 
   const addWorker = (w: Partial<Worker>) => {
@@ -527,44 +742,61 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       status: 'Active'
     };
     setWorkers(prev => [...prev, newWorker]);
+    writeDocumentToCloud('workers', newWorker.id, newWorker);
   };
 
   const updateWorker = (id: string, updates: Partial<Worker>) => {
-    setWorkers(prev => prev.map(w => w.id === id ? { ...w, ...updates } : w));
+    setWorkers(prev => {
+      const next = prev.map(w => w.id === id ? { ...w, ...updates } : w);
+      const updated = next.find(w => w.id === id);
+      if (updated) writeDocumentToCloud('workers', id, updated);
+      return next;
+    });
   };
 
   const deleteWorker = (id: string) => {
     setWorkers(prev => prev.filter(w => w.id !== id));
+    deleteDocumentFromCloud('workers', id);
   };
 
   const toggleWorkerBlacklist = (id: string, reason?: string) => {
-    setWorkers(prev => prev.map(w => {
-      if (w.id === id) {
-        const nextBlacklisted = !w.isBlacklisted;
-        return {
-          ...w,
-          isBlacklisted: nextBlacklisted,
-          blacklistReason: nextBlacklisted ? (reason || 'Flagged and blacklisted by Managing Owner Ar. Aamir Khan.') : undefined,
-          status: nextBlacklisted ? 'Inactive' : 'Active',
-          disabled: nextBlacklisted ? true : w.disabled
-        };
-      }
-      return w;
-    }));
+    setWorkers(prev => {
+      const next = prev.map(w => {
+        if (w.id === id) {
+          const nextBlacklisted = !w.isBlacklisted;
+          return {
+            ...w,
+            isBlacklisted: nextBlacklisted,
+            blacklistReason: nextBlacklisted ? (reason || 'Flagged and blacklisted by Managing Owner Ar. Aamir Khan.') : undefined,
+            status: nextBlacklisted ? 'Inactive' : 'Active',
+            disabled: nextBlacklisted ? true : w.disabled
+          };
+        }
+        return w;
+      });
+      const updated = next.find(w => w.id === id);
+      if (updated) writeDocumentToCloud('workers', id, updated);
+      return next;
+    });
   };
 
   const toggleWorkerDisabled = (id: string) => {
-    setWorkers(prev => prev.map(w => {
-      if (w.id === id) {
-        const nextDisabled = !w.disabled;
-        return {
-          ...w,
-          disabled: nextDisabled,
-          status: nextDisabled ? 'Inactive' : 'Active'
-        };
-      }
-      return w;
-    }));
+    setWorkers(prev => {
+      const next = prev.map(w => {
+        if (w.id === id) {
+          const nextDisabled = !w.disabled;
+          return {
+            ...w,
+            disabled: nextDisabled,
+            status: nextDisabled ? 'Inactive' : 'Active'
+          };
+        }
+        return w;
+      });
+      const updated = next.find(w => w.id === id);
+      if (updated) writeDocumentToCloud('workers', id, updated);
+      return next;
+    });
   };
 
   const markAttendance = (workerId: string, status: 'Present' | 'Half Day' | 'Absent', workAssigned: string) => {
@@ -576,6 +808,7 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const payable = status === 'Present' ? rate : status === 'Half Day' ? Math.round(rate / 2) : 0;
 
     // Check if existing record today
+    let finalRecord: AttendanceRecord;
     setAttendance(prev => {
       const existingIdx = prev.findIndex(a => a.workerId === workerId && a.date === today);
       const newRec: AttendanceRecord = {
@@ -590,6 +823,7 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         payableAmount: payable,
         projectId: activeProjectId
       };
+      finalRecord = newRec;
 
       if (existingIdx >= 0) {
         const copy = [...prev];
@@ -599,18 +833,25 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return [newRec, ...prev];
     });
 
+    writeDocumentToCloud('attendance', finalRecord!.id, finalRecord!);
+
     // Update worker totals
-    setWorkers(prev => prev.map(w => {
-      if (w.id === workerId) {
-        const addedDays = status === 'Present' ? 1 : status === 'Half Day' ? 0.5 : 0;
-        return {
-          ...w,
-          totalDaysWorked: Math.max(0, w.totalDaysWorked + (addedDays > 0 ? 1 : 0)),
-          pendingWage: Math.max(0, w.pendingWage + payable)
-        };
-      }
-      return w;
-    }));
+    setWorkers(prev => {
+      const next = prev.map(w => {
+        if (w.id === workerId) {
+          const addedDays = status === 'Present' ? 1 : status === 'Half Day' ? 0.5 : 0;
+          return {
+            ...w,
+            totalDaysWorked: Math.max(0, w.totalDaysWorked + (addedDays > 0 ? 1 : 0)),
+            pendingWage: Math.max(0, w.pendingWage + payable)
+          };
+        }
+        return w;
+      });
+      const updatedWorker = next.find(w => w.id === workerId);
+      if (updatedWorker) writeDocumentToCloud('workers', workerId, updatedWorker);
+      return next;
+    });
   };
 
   const addDailyReport = (r: Partial<DailySiteReport>) => {
@@ -633,6 +874,7 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     };
 
     setDailyReports(prev => [newDSR, ...prev]);
+    writeDocumentToCloud('dailyReports', newDSR.id, newDSR);
 
     // Update overall project progress
     if (r.progressPercentage !== undefined) {
@@ -654,6 +896,7 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       lastRestockedDate: new Date().toISOString().split('T')[0]
     };
     setMaterials(prev => [...prev, newMat]);
+    writeDocumentToCloud('materials', newMat.id, newMat);
   };
 
   const receiveMaterial = (materialId: string, qty: number, vendor: string, po: string, notes?: string) => {
@@ -663,12 +906,14 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const newBalance = mat.currentBalance + qty;
     const newStatus = newBalance <= mat.minThreshold ? (newBalance <= mat.minThreshold / 2 ? 'Critical' : 'Low Stock') : 'In Stock';
 
-    setMaterials(prev => prev.map(m => m.id === materialId ? {
-      ...m,
+    const updatedMat = {
+      ...mat,
       currentBalance: newBalance,
       status: newStatus,
       lastRestockedDate: new Date().toISOString().split('T')[0]
-    } : m));
+    };
+    setMaterials(prev => prev.map(m => m.id === materialId ? updatedMat : m));
+    writeDocumentToCloud('materials', materialId, updatedMat);
 
     const newTx: MaterialTransaction = {
       id: `tx-${Date.now()}`,
@@ -683,6 +928,7 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       notes
     };
     setTransactions(prev => [newTx, ...prev]);
+    writeDocumentToCloud('materialTransactions', newTx.id, newTx);
 
     // Add expense record automatically
     const totalCost = qty * mat.unitCost;
@@ -708,11 +954,13 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const newBalance = Math.max(0, mat.currentBalance - qty);
     const newStatus = newBalance <= mat.minThreshold ? (newBalance <= mat.minThreshold / 2 ? 'Critical' : 'Low Stock') : 'In Stock';
 
-    setMaterials(prev => prev.map(m => m.id === materialId ? {
-      ...m,
+    const updatedMat = {
+      ...mat,
       currentBalance: newBalance,
       status: newStatus
-    } : m));
+    };
+    setMaterials(prev => prev.map(m => m.id === materialId ? updatedMat : m));
+    writeDocumentToCloud('materials', materialId, updatedMat);
 
     const newTx: MaterialTransaction = {
       id: `tx-${Date.now()}`,
@@ -726,6 +974,7 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       notes
     };
     setTransactions(prev => [newTx, ...prev]);
+    writeDocumentToCloud('materialTransactions', newTx.id, newTx);
   };
 
   const addExpense = (e: Partial<ExpenseRecord>) => {
@@ -745,6 +994,7 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       notes: e.notes
     };
     setExpenses(prev => [newExp, ...prev]);
+    writeDocumentToCloud('expenses', newExp.id, newExp);
 
     // Update active project's totalSpent
     if (e.projectId === activeProjectId || !e.projectId) {
@@ -772,58 +1022,80 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       disabled: false
     };
     setVendors(prev => [...prev, newVendor]);
+    writeDocumentToCloud('vendors', newVendor.id, newVendor);
   };
 
   const updateVendor = (id: string, updates: Partial<Vendor>) => {
-    setVendors(prev => prev.map(v => v.id === id ? { ...v, ...updates } : v));
+    setVendors(prev => {
+      const next = prev.map(v => v.id === id ? { ...v, ...updates } : v);
+      const updated = next.find(v => v.id === id);
+      if (updated) writeDocumentToCloud('vendors', id, updated);
+      return next;
+    });
   };
 
   const deleteVendor = (id: string) => {
     setVendors(prev => prev.filter(v => v.id !== id));
+    deleteDocumentFromCloud('vendors', id);
   };
 
   const toggleVendorBlacklist = (id: string, reason?: string) => {
-    setVendors(prev => prev.map(v => {
-      if (v.id === id) {
-        const nextBlacklisted = !v.isBlacklisted;
-        return {
-          ...v,
-          isBlacklisted: nextBlacklisted,
-          blacklistReason: nextBlacklisted ? (reason || 'Disqualified and blacklisted by Managing Owner Ar. Aamir Khan.') : undefined,
-          disabled: nextBlacklisted ? true : v.disabled
-        };
-      }
-      return v;
-    }));
+    setVendors(prev => {
+      const next = prev.map(v => {
+        if (v.id === id) {
+          const nextBlacklisted = !v.isBlacklisted;
+          return {
+            ...v,
+            isBlacklisted: nextBlacklisted,
+            blacklistReason: nextBlacklisted ? (reason || 'Disqualified and blacklisted by Managing Owner Ar. Aamir Khan.') : undefined,
+            disabled: nextBlacklisted ? true : v.disabled
+          };
+        }
+        return v;
+      });
+      const updated = next.find(v => v.id === id);
+      if (updated) writeDocumentToCloud('vendors', id, updated);
+      return next;
+    });
   };
 
   const toggleVendorDisabled = (id: string) => {
-    setVendors(prev => prev.map(v => {
-      if (v.id === id) {
-        const nextDisabled = !v.disabled;
-        return {
-          ...v,
-          disabled: nextDisabled
-        };
-      }
-      return v;
-    }));
+    setVendors(prev => {
+      const next = prev.map(v => {
+        if (v.id === id) {
+          const nextDisabled = !v.disabled;
+          return {
+            ...v,
+            disabled: nextDisabled
+          };
+        }
+        return v;
+      });
+      const updated = next.find(v => v.id === id);
+      if (updated) writeDocumentToCloud('vendors', id, updated);
+      return next;
+    });
   };
 
   const recordVendorPayment = (vendorId: string, amount: number, paymentMode: string) => {
-    setVendors(prev => prev.map(v => {
-      if (v.id === vendorId) {
-        const newPaid = v.totalPaid + amount;
-        const newBal = Math.max(0, v.balanceOutstanding - amount);
-        return {
-          ...v,
-          totalPaid: newPaid,
-          balanceOutstanding: newBal,
-          status: newBal === 0 ? 'Active' : 'Pending Settlement'
-        };
-      }
-      return v;
-    }));
+    setVendors(prev => {
+      const next = prev.map(v => {
+        if (v.id === vendorId) {
+          const newPaid = v.totalPaid + amount;
+          const newBal = Math.max(0, v.balanceOutstanding - amount);
+          return {
+            ...v,
+            totalPaid: newPaid,
+            balanceOutstanding: newBal,
+            status: newBal === 0 ? 'Active' : 'Pending Settlement'
+          };
+        }
+        return v;
+      });
+      const updated = next.find(v => v.id === vendorId);
+      if (updated) writeDocumentToCloud('vendors', vendorId, updated);
+      return next;
+    });
 
     const vendor = vendors.find(v => v.id === vendorId);
     if (vendor) {
@@ -843,18 +1115,29 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const addQuote = (q: QuoteEstimate) => {
     setQuotes(prev => [q, ...prev]);
+    writeDocumentToCloud('quotes', q.id, q);
   };
 
   const updateSelectionStatus = (id: string, status: 'Approved' | 'Pending' | 'Rejected') => {
-    setSelections(prev => prev.map(s => s.id === id ? {
-      ...s,
-      status,
-      clientApprovedDate: status === 'Approved' ? new Date().toISOString().split('T')[0] : undefined
-    } : s));
+    setSelections(prev => {
+      const next = prev.map(s => s.id === id ? {
+        ...s,
+        status,
+        clientApprovedDate: status === 'Approved' ? new Date().toISOString().split('T')[0] : undefined
+      } : s);
+      const updated = next.find(s => s.id === id);
+      if (updated) writeDocumentToCloud('interiorSelections', id, updated);
+      return next;
+    });
   };
 
   const updateInteriorSelection = (id: string, updates: Partial<InteriorSelectionItem>) => {
-    setSelections(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+    setSelections(prev => {
+      const next = prev.map(s => s.id === id ? { ...s, ...updates } : s);
+      const updated = next.find(s => s.id === id);
+      if (updated) writeDocumentToCloud('interiorSelections', id, updated);
+      return next;
+    });
   };
 
   const addSitePhoto = (p: Partial<SitePhotoItem>) => {
@@ -870,6 +1153,7 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       phase: p.phase || 'Civil'
     };
     setSitePhotos(prev => [newPhoto, ...prev]);
+    writeDocumentToCloud('sitePhotos', newPhoto.id, newPhoto);
   };
 
   const resetToDefaults = () => {
@@ -944,6 +1228,14 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         sitePhotos,
         addSitePhoto,
         resetToDefaults,
+        cloudSyncStatus,
+        firebaseUser,
+        signInWithGoogle,
+        signOutGoogle,
+        syncAllToCloud,
+        fetchLatestFromCloud,
+        lastCloudSyncTime,
+        cloudSyncError,
       }}
     >
       {children}

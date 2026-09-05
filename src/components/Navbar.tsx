@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useCasabuild } from '../context/CasabuildContext';
 import { UserRole } from '../types';
 import { UserProfileModal } from './UserProfileModal';
+import { CloudSyncModal } from './CloudSyncModal';
 import {
   Building2,
   ChevronDown,
@@ -21,7 +22,10 @@ import {
   AlertTriangle,
   User,
   LogOut,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Cloud,
+  CloudOff,
+  RefreshCw
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -40,11 +44,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenQuickAction, onNavigateToT
     setActiveProjectId,
     activeProject,
     materials,
-    resetToDefaults
+    resetToDefaults,
+    cloudSyncStatus,
+    firebaseUser
   } = useCasabuild();
 
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showSyncModal, setShowSyncModal] = useState(false);
   const [showProjectDropdown, setShowProjectDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
@@ -184,6 +191,44 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenQuickAction, onNavigateToT
               <span className="sm:hidden">New</span>
             </button>
           )}
+
+          {/* Cloud Sync Status Indicator Pill */}
+          <button
+            id="navbar-cloud-sync-btn"
+            onClick={() => setShowSyncModal(true)}
+            className={`flex items-center space-x-1.5 rounded-xl border px-2.5 py-1.5 text-xs font-medium transition ${
+              cloudSyncStatus === 'synced'
+                ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
+                : cloudSyncStatus === 'syncing'
+                ? 'border-amber-500/30 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 animate-pulse'
+                : cloudSyncStatus === 'error'
+                ? 'border-rose-500/30 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20'
+                : 'border-zinc-800 bg-zinc-900/80 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
+            }`}
+            title="Firebase Cloud Database Synchronization"
+          >
+            {cloudSyncStatus === 'syncing' ? (
+              <RefreshCw className="h-3.5 w-3.5 animate-spin text-amber-400" />
+            ) : cloudSyncStatus === 'synced' ? (
+              <div className="flex items-center space-x-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <Cloud className="h-3.5 w-3.5 text-emerald-400" />
+              </div>
+            ) : cloudSyncStatus === 'error' ? (
+              <AlertTriangle className="h-3.5 w-3.5 text-rose-400" />
+            ) : (
+              <CloudOff className="h-3.5 w-3.5 text-zinc-400" />
+            )}
+            <span className="hidden xl:inline text-[11px]">
+              {cloudSyncStatus === 'synced'
+                ? 'Cloud Synced'
+                : cloudSyncStatus === 'syncing'
+                ? 'Syncing...'
+                : cloudSyncStatus === 'error'
+                ? 'Sync Error'
+                : 'Cloud Sync'}
+            </span>
+          </button>
 
           {/* Authenticated User Profile Pill & Dropdown */}
           <div className="relative">
@@ -400,6 +445,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenQuickAction, onNavigateToT
       <UserProfileModal
         isOpen={showProfileModal}
         onClose={() => setShowProfileModal(false)}
+      />
+
+      {/* Firebase Cloud Sync Management Modal */}
+      <CloudSyncModal
+        isOpen={showSyncModal}
+        onClose={() => setShowSyncModal(false)}
       />
     </header>
   );
