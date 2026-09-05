@@ -31,17 +31,17 @@ import {
 } from 'lucide-react';
 
 function CasabuildMainApp() {
-  const { currentUser, currentRole, setRole } = useCasabuild();
+  const { currentUser, currentRole, setRole, isOwner } = useCasabuild();
   const [currentTab, setCurrentTab] = useState<string>('dashboard');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [quickActionOpen, setQuickActionOpen] = useState(false);
 
-  // If switched to client role, ensure they see client portal or safe view
+  // If switched to client role, ensure external non-owner client sees client portal
   React.useEffect(() => {
-    if (currentUser && currentRole === 'client' && currentTab !== 'client-portal' && currentTab !== 'photos' && currentTab !== 'selections') {
+    if (currentUser && !isOwner && currentRole === 'client' && currentTab !== 'client-portal' && currentTab !== 'photos' && currentTab !== 'selections') {
       setCurrentTab('client-portal');
     }
-  }, [currentUser, currentRole, currentTab]);
+  }, [currentUser, isOwner, currentRole, currentTab]);
 
   // If user is not authenticated, show Login & Predefined Role Portal
   if (!currentUser) {

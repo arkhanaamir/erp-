@@ -46,7 +46,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenQuickAction, onNavigateToT
     materials,
     resetToDefaults,
     cloudSyncStatus,
-    firebaseUser
+    firebaseUser,
+    isOwner,
   } = useCasabuild();
 
   const [showUserDropdown, setShowUserDropdown] = useState(false);
@@ -255,7 +256,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenQuickAction, onNavigateToT
                     {currentUser?.name || 'User'}
                   </span>
                   <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${currentRoleInfo.color}`}>
-                    {currentRole.toUpperCase()}
+                    {isOwner && currentRole !== 'owner' ? `OWNER (${currentRole.toUpperCase()})` : currentRole.toUpperCase()}
                   </span>
                 </div>
                 <p className="text-[10px] text-zinc-400 font-mono truncate max-w-[130px] leading-tight mt-0.5">
@@ -286,7 +287,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenQuickAction, onNavigateToT
                     <p className="text-[11px] font-mono text-zinc-400 truncate">{currentUser?.email}</p>
                     <div className="flex items-center space-x-1.5 mt-1">
                       <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded border ${currentRoleInfo.color}`}>
-                        {currentRole.toUpperCase()}
+                        {isOwner && currentRole !== 'owner' ? `OWNER (${currentRole.toUpperCase()})` : currentRole.toUpperCase()}
                       </span>
                       <span className="text-[10px] text-zinc-400 truncate">{currentUser?.designation}</span>
                     </div>
@@ -307,19 +308,19 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenQuickAction, onNavigateToT
                   </button>
                 </div>
 
-                {/* Role Switching: Allowed for Owner, or displays strict lock for predefined users */}
-                {currentUser?.role === 'owner' ? (
+                {/* Role Switching: Allowed for Owner with Master Access across all roles */}
+                {isOwner ? (
                   <div className="pt-2 border-t border-zinc-800">
                     <div className="flex items-center justify-between px-2 py-1 mb-1">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">
-                        Executive Preview Switcher
+                        Master Role Switcher
                       </span>
                       <span className="text-[9px] bg-amber-500/15 text-amber-300 px-1.5 py-0.2 rounded border border-amber-500/30">
-                        Admin Privileges
+                        Owner in Every Role
                       </span>
                     </div>
                     <p className="text-[10px] text-zinc-400 px-2 mb-2">
-                      Test workflow view from other team perspectives:
+                      Operate with Master Owner authority across any role workspace:
                     </p>
                     <div className="grid grid-cols-2 gap-1.5">
                       {(Object.keys(roleConfigs) as UserRole[]).map(roleKey => {

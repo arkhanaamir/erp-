@@ -474,12 +474,16 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
           {activeTab === 'permissions' && (
             <div className="space-y-4">
               <div className="text-xs text-zinc-400 leading-relaxed">
-                The Casabuild ERP automatically enforces cryptographic role boundaries. Below is the operational permission status for <span className="text-amber-400 font-semibold">{currentUser.name}</span> ({currentMeta.label}):
+                The Casabuild ERP automatically enforces cryptographic role boundaries. {isOwner ? (
+                  <span className="text-amber-300 font-semibold">As Master Owner, Ar. Aamir Khan holds unrestricted administrative authorization across every role and subsystem:</span>
+                ) : (
+                  <>Below is the operational permission status for <span className="text-amber-400 font-semibold">{currentUser.name}</span> ({currentMeta.label}):</>
+                )}
               </div>
 
               <div className="space-y-2">
                 {allSystemPermissions.map(item => {
-                  const isAllowed = item.roles.includes(currentUser.role);
+                  const isAllowed = isOwner || item.roles.includes(currentUser.role);
                   return (
                     <div
                       key={item.key}

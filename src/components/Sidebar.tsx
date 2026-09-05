@@ -30,7 +30,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   mobileOpen,
   setMobileOpen,
 }) => {
-  const { currentRole, materials, dailyReports } = useCasabuild();
+  const { currentRole, materials, dailyReports, isOwner } = useCasabuild();
 
   const lowStockCount = materials.filter(m => m.status === 'Low Stock' || m.status === 'Critical').length;
 
@@ -48,8 +48,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'reports', label: 'Executive Reports (PDF)', icon: FileBarChart2, badge: null, roles: ['owner', 'architect', 'supervisor', 'accountant'] },
   ];
 
-  // Filter based on current active role
-  const visibleItems = navItems.filter(item => item.roles.includes(currentRole));
+  // Master Owner in every role has access to all tools, while other profiles see their role-specific view
+  const visibleItems = isOwner ? navItems : navItems.filter(item => item.roles.includes(currentRole));
 
   return (
     <>

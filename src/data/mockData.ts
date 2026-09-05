@@ -352,6 +352,28 @@ export const INITIAL_PHOTOS: SitePhotoItem[] = [
   { id: 'p-4', projectId: 'proj-2', date: '2025-10-20', locationTag: 'Penthouse Dining Area', activityTag: 'Concealed Electrical Distribution', imageUrl: 'https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=800&q=80', caption: 'Automation bus conduits wired and labeled for Lutron home lighting.', uploadedBy: 'Devansh (Site Eng)', phase: 'Services' }
 ];
 
+export const ALL_MASTER_PERMISSIONS = [
+  'Full Administrative & Master ERP Access (Owner in Every Role)',
+  'Architectural & Interior Drawings Management (Architect)',
+  'BOQ & Construction Cost Estimation (Architect)',
+  'Interior Selection & Finish Specifications (Architect)',
+  'Client Design Reviews & Presentations (Architect)',
+  'Daily Site Reports (DSR) Logging & Sign-Off (Supervisor)',
+  'Workforce Muster Roll & Biometric Attendance (Supervisor)',
+  'Material Inward Gate Entry & Consumption Logs (Supervisor)',
+  'Site Progress Photo Documentation & Quality (Supervisor)',
+  'Vendor Ledger & Outstanding Aging (Accountant)',
+  'Worker Wage & Advance Settlement (Accountant)',
+  'NEFT, RTGS & UPI Disbursements (Accountant)',
+  'GST Invoice Audit & Input Tax Credit (Accountant)',
+  'Subcontractor Task Completion Updates (Contractor)',
+  'Turnkey Workforce Verification (Contractor)',
+  'Client Approvals & Payment Milestone Disbursements (Client)',
+  'Employee Directory & Contact Details Governance',
+  'Vendor & Contractor Blacklisting Controls',
+  'Excel Data Exports & Statutory Auditing'
+];
+
 export const INITIAL_USERS: UserProfile[] = [
   {
     id: 'usr-1',
@@ -359,21 +381,13 @@ export const INITIAL_USERS: UserProfile[] = [
     email: 'Ar.khanaamir@gmail.com',
     password: 'password123',
     role: 'owner',
-    designation: 'Managing Owner & Principal Architect',
+    designation: 'Managing Owner & Principal Architect (Master in Every Role)',
     phone: '+91 98101 23456',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
     companyOrAffiliation: 'The Casabuild Design & Turnkey Studio',
     licenseNumber: 'COA Reg. CA/2018/98421',
     assignedProjects: ['ALL'],
-    permissions: [
-      'Full Administrative & Master ERP Access (Owner)',
-      'Employee Directory & Contact Details Governance',
-      'Vendor & Contractor Blacklisting Controls',
-      'Contract Approvals & Financial Authorizations',
-      'Architectural & Interior Drawings Management',
-      'BOQ & Construction Cost Estimation',
-      'Excel Data Exports & Statutory Auditing'
-    ],
+    permissions: ALL_MASTER_PERMISSIONS,
     lastLogin: '2026-09-05 08:45',
     disabled: false,
     status: 'Active'
