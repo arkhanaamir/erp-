@@ -81,11 +81,11 @@ export const LabourAttendanceView: React.FC = () => {
   });
 
   // Today's attendance stats
-  const todayAttendanceRecords = attendance.filter(a => a.date === selectedDate);
-  const presentCount = todayAttendanceRecords.filter(a => a.status === 'Present').length;
-  const halfDayCount = todayAttendanceRecords.filter(a => a.status === 'Half Day').length;
-  const absentCount = todayAttendanceRecords.filter(a => a.status === 'Absent').length;
-  const totalDailyWages = todayAttendanceRecords.reduce((acc, curr) => acc + curr.payableAmount, 0);
+  const todayAttendanceRecords = (attendance || []).filter(a => a?.date === selectedDate);
+  const presentCount = todayAttendanceRecords.filter(a => a?.status === 'Present').length;
+  const halfDayCount = todayAttendanceRecords.filter(a => a?.status === 'Half Day').length;
+  const absentCount = todayAttendanceRecords.filter(a => a?.status === 'Absent').length;
+  const totalDailyWages = todayAttendanceRecords.reduce((acc, curr) => acc + (curr?.payableAmount || 0), 0);
 
   const handleOpenProfile = (w: Worker) => {
     setSelectedWorkerProfile(w);
@@ -397,7 +397,7 @@ export const LabourAttendanceView: React.FC = () => {
                 statusFilter === 'All' ? 'bg-amber-500 text-zinc-950 font-bold' : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >
-              All ({workers.length})
+              All ({workers?.length || 0})
             </button>
             <button
               onClick={() => setStatusFilter('Active')}
@@ -413,13 +413,13 @@ export const LabourAttendanceView: React.FC = () => {
                 statusFilter === 'Blacklisted' ? 'bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30' : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >
-              Blacklisted ({workers.filter(w => w.isBlacklisted).length})
+              Blacklisted ({(workers || []).filter(w => w?.isBlacklisted).length})
             </button>
           </div>
         </div>
 
         <div className="text-xs text-zinc-400">
-          Showing <span className="font-semibold text-zinc-200">{filteredWorkers.length}</span> records
+          Showing <span className="font-semibold text-zinc-200">{filteredWorkers?.length || 0}</span> records
         </div>
       </div>
 

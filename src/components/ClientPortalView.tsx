@@ -35,9 +35,9 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
     updateInteriorSelection
   } = useCasabuild();
 
-  const clientDisplayName = currentUser?.role === 'client' ? currentUser.name : activeProject.clientName;
-  const pendingSelections = interiorSelections.filter(i => i.status === 'Pending');
-  const recentReport = dailyReports[0];
+  const clientDisplayName = currentUser?.role === 'client' ? currentUser.name : (activeProject?.clientName || 'Valued Client');
+  const pendingSelections = (interiorSelections || []).filter(i => i?.status === 'Pending');
+  const recentReport = (dailyReports || [])[0];
 
   return (
     <div className="space-y-6 pb-12">
@@ -55,7 +55,7 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
               Welcome back, {clientDisplayName}
             </h2>
             <p className="mt-1 text-xs sm:text-sm text-zinc-400">
-              Live updates for <span className="font-semibold text-zinc-200">{activeProject.name}</span> ({activeProject.location}). Turnkey execution managed by The Casabuild.
+              Live updates for <span className="font-semibold text-zinc-200">{activeProject?.name || 'Casabuild Project'}</span> ({activeProject?.location || 'Gurugram'}). Turnkey execution managed by The Casabuild.
             </p>
           </div>
 
@@ -180,13 +180,13 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
               <div className="flex items-center space-x-2">
                 <Palette className="h-4 w-4 text-amber-400" />
                 <h3 className="text-xs font-bold uppercase tracking-wider text-amber-400">
-                  Awaiting Your Approval ({pendingSelections.length})
+                  Awaiting Your Approval ({pendingSelections?.length || 0})
                 </h3>
               </div>
             </div>
 
             <div className="mt-3 space-y-3">
-              {pendingSelections.slice(0, 2).map(item => (
+              {(pendingSelections || []).slice(0, 2).map(item => (
                 <div key={item.id} className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-3 text-xs">
                   <div className="flex items-center space-x-2.5">
                     <img src={item.imageUrl} alt={item.item} className="h-10 w-10 rounded-xl object-cover border border-zinc-700" />
@@ -211,7 +211,7 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
                   </div>
                 </div>
               ))}
-              {pendingSelections.length === 0 && (
+              {(pendingSelections?.length || 0) === 0 && (
                 <p className="text-xs text-zinc-400">All design and material selections are up to date.</p>
               )}
             </div>

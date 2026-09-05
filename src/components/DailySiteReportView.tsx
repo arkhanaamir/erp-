@@ -110,7 +110,7 @@ export const DailySiteReportView: React.FC = () => {
       r.issues || 'None',
       r.issueSeverity || 'None',
       r.tomorrowPlan || 'N/A',
-      r.photos.length
+      r.photos?.length || 0
     ]);
     exportToExcel('casabuild_daily_site_reports_dsr', headers, rows);
   };
@@ -236,9 +236,9 @@ export const DailySiteReportView: React.FC = () => {
                     </div>
                   )}
 
-                  {report.photos && report.photos.length > 0 && (
+                  {(report.photos?.length || 0) > 0 && (
                     <div className="flex items-center space-x-2.5 pt-2">
-                      {report.photos.slice(0, 3).map((img, idx) => (
+                      {(report.photos || []).slice(0, 3).map((img, idx) => (
                         <img
                           key={idx}
                           src={img}
@@ -246,9 +246,9 @@ export const DailySiteReportView: React.FC = () => {
                           className="h-14 w-20 rounded-xl object-cover border border-zinc-700"
                         />
                       ))}
-                      {report.photos.length > 3 && (
+                      {(report.photos?.length || 0) > 3 && (
                         <span className="text-[10px] text-zinc-400 font-medium">
-                          +{report.photos.length - 3} more
+                          +{(report.photos?.length || 0) - 3} more
                         </span>
                       )}
                     </div>
@@ -513,11 +513,11 @@ export const DailySiteReportView: React.FC = () => {
                 <span className="font-semibold text-zinc-400">Tomorrow's Target:</span>
                 <p className="mt-0.5 text-zinc-200">{selectedReport.tomorrowPlan}</p>
               </div>
-              {selectedReport.photos && selectedReport.photos.length > 0 && (
+              {(selectedReport?.photos?.length || 0) > 0 && (
                 <div>
                   <span className="font-semibold text-zinc-400 block mb-1.5">Attached Site Photos:</span>
                   <div className="grid grid-cols-2 gap-2">
-                    {selectedReport.photos.map((img, i) => (
+                    {(selectedReport?.photos || []).map((img, i) => (
                       <img key={i} src={img} alt="site" className="h-28 w-full rounded-xl object-cover border border-zinc-700" />
                     ))}
                   </div>

@@ -61,8 +61,8 @@ export const ProjectManagementView: React.FC = () => {
       p.budget,
       p.areaSqFt,
       p.overallProgress,
-      p.milestones.length,
-      p.drawings.length,
+      p.milestones?.length || 0,
+      p.drawings?.length || 0,
       p.expectedCompletion
     ]);
     exportToExcel('casabuild_all_projects_directory', headers, rows);
@@ -79,7 +79,7 @@ export const ProjectManagementView: React.FC = () => {
       'Status',
       'Assigned Team / Lead'
     ];
-    const rows = activeProject.milestones.map(m => [
+    const rows = (activeProject?.milestones || []).map(m => [
       m.id,
       m.phase,
       m.title,
@@ -89,7 +89,7 @@ export const ProjectManagementView: React.FC = () => {
       m.status,
       m.assignedTo || 'Casabuild Team'
     ]);
-    exportToExcel(`casabuild_milestones_${activeProject.code}`, headers, rows);
+    exportToExcel(`casabuild_milestones_${activeProject?.code || 'active'}`, headers, rows);
   };
 
   const handleExportDrawings = () => {
@@ -102,7 +102,7 @@ export const ProjectManagementView: React.FC = () => {
       'Approval Status',
       'Approved By Lead'
     ];
-    const rows = activeProject.drawings.map(d => [
+    const rows = (activeProject?.drawings || []).map(d => [
       d.id,
       d.title,
       d.type,
@@ -111,7 +111,7 @@ export const ProjectManagementView: React.FC = () => {
       d.status,
       d.approvedBy || 'Pending'
     ]);
-    exportToExcel(`casabuild_drawings_vault_${activeProject.code}`, headers, rows);
+    exportToExcel(`casabuild_drawings_vault_${activeProject?.code || 'active'}`, headers, rows);
   };
 
   const handleExportBOQ = () => {
@@ -126,7 +126,7 @@ export const ProjectManagementView: React.FC = () => {
       'Execution Completed (%)',
       'Certified RA Billed (INR)'
     ];
-    const rows = activeProject.boq.map(b => [
+    const rows = (activeProject?.boq || []).map(b => [
       b.id,
       b.item,
       b.category,
@@ -137,7 +137,7 @@ export const ProjectManagementView: React.FC = () => {
       b.completedPercent,
       b.billedAmount
     ]);
-    exportToExcel(`casabuild_live_boq_${activeProject.code}`, headers, rows);
+    exportToExcel(`casabuild_live_boq_${activeProject?.code || 'active'}`, headers, rows);
   };
 
   const [activeTab, setActiveTab] = useState<'overview' | 'milestones' | 'drawings' | 'boq' | 'documents'>('overview');
@@ -193,7 +193,7 @@ export const ProjectManagementView: React.FC = () => {
       status: 'Upcoming'
     };
     updateProject(activeProject.id, {
-      milestones: [...activeProject.milestones, newM]
+      milestones: [...(activeProject?.milestones || []), newM]
     });
     setShowAddMilestoneModal(false);
     setMilestoneTitle('');
@@ -212,14 +212,14 @@ export const ProjectManagementView: React.FC = () => {
       approvedBy: 'Ar. Aamir Khan'
     };
     updateProject(activeProject.id, {
-      drawings: [...activeProject.drawings, newD]
+      drawings: [...(activeProject?.drawings || []), newD]
     });
     setShowAddDrawingModal(false);
     setDrawingTitle('');
   };
 
   const handleUpdateMilestoneProgress = (milestoneId: string, newProgress: number) => {
-    const updated = activeProject.milestones.map(m => {
+    const updated = (activeProject?.milestones || []).map(m => {
       if (m.id === milestoneId) {
         return {
           ...m,
@@ -241,7 +241,7 @@ export const ProjectManagementView: React.FC = () => {
   };
 
   const handleUpdateBOQProgress = (boqId: string, newPercent: number) => {
-    const updatedBOQ = activeProject.boq.map(b => {
+    const updatedBOQ = (activeProject?.boq || []).map(b => {
       if (b.id === boqId) {
         const billed = Math.round((b.amount * newPercent) / 100);
         return { ...b, completedPercent: newPercent, billedAmount: billed };
@@ -372,8 +372,8 @@ export const ProjectManagementView: React.FC = () => {
             {[
               { id: 'overview', label: 'Overview & Schedule' },
               { id: 'milestones', label: 'Milestones (Gantt)' },
-              { id: 'drawings', label: `Drawings Vault (${activeProject.drawings.length})` },
-              { id: 'boq', label: `Live BOQ (${activeProject.boq.length})` },
+              { id: 'drawings', label: `Drawings Vault (${activeProject?.drawings?.length || 0})` },
+              { id: 'boq', label: `Live BOQ (${activeProject?.boq?.length || 0})` },
               { id: 'documents', label: 'Contracts & NOCs' }
             ].map(tab => (
               <button
@@ -405,12 +405,12 @@ export const ProjectManagementView: React.FC = () => {
                   <p className="text-xs text-zinc-400">Chronological execution progress</p>
                 </div>
                 <span className="text-xs font-semibold text-amber-400">
-                  Target Handover: {activeProject.expectedCompletion || 'Feb 2026'}
+                  Target Handover: {activeProject?.expectedCompletion || 'Feb 2026'}
                 </span>
               </div>
 
               <div className="mt-4 space-y-4">
-                {activeProject.milestones.map((m) => (
+                {(activeProject?.milestones || []).map((m) => (
                   <div key={m.id} className="relative pl-6 pb-2 border-l-2 border-zinc-800 last:border-0">
                     <div className={`absolute -left-1.5 top-0 h-3 w-3 rounded-full ${
                       m.status === 'Completed' ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]' : m.status === 'In Progress' ? 'bg-amber-400 animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.5)]' : 'bg-zinc-700'
@@ -503,7 +503,7 @@ export const ProjectManagementView: React.FC = () => {
           </div>
 
           <div className="mt-4 space-y-3.5">
-            {activeProject.milestones.map(m => (
+            {(activeProject?.milestones || []).map(m => (
               <div key={m.id} className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 hover:border-zinc-700 transition">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
@@ -547,7 +547,7 @@ export const ProjectManagementView: React.FC = () => {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-zinc-800">
             <div>
               <h4 className="text-base font-bold text-zinc-100 font-['Outfit',sans-serif]">Architectural & Structural Drawings Vault</h4>
-              <p className="text-xs text-zinc-400">Official PDFs, floorplans, and revisions for {activeProject.name}</p>
+              <p className="text-xs text-zinc-400">Official PDFs, floorplans, and revisions for {activeProject?.name || 'Current Project'}</p>
             </div>
             <div className="flex items-center space-x-2">
               <button
@@ -569,7 +569,7 @@ export const ProjectManagementView: React.FC = () => {
           </div>
 
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {activeProject.drawings.map(d => (
+            {(activeProject?.drawings || []).map(d => (
               <div key={d.id} className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 transition hover:border-zinc-700 hover:bg-zinc-900">
                 <div className="flex items-center justify-between text-xs">
                   <span className="rounded bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-400 border border-amber-500/20">
@@ -621,7 +621,7 @@ export const ProjectManagementView: React.FC = () => {
               <div className="text-right">
                 <span className="text-xs text-zinc-400">Total BOQ Value: </span>
                 <span className="text-sm font-bold text-emerald-400">
-                  ₹{activeProject.boq.reduce((acc, curr) => acc + curr.amount, 0).toLocaleString('en-IN')}
+                  ₹{(activeProject?.boq || []).reduce((acc, curr) => acc + (curr.amount || 0), 0).toLocaleString('en-IN')}
                 </span>
               </div>
             </div>
@@ -641,7 +641,7 @@ export const ProjectManagementView: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800/60">
-                {activeProject.boq.map(item => (
+                {(activeProject?.boq || []).map(item => (
                   <tr key={item.id} className="hover:bg-zinc-800/40 transition">
                     <td className="py-3 px-3 font-medium text-zinc-100 max-w-[220px]">
                       {item.item}

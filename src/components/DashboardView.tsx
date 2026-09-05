@@ -50,20 +50,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
   } = useCasabuild();
 
   // Metrics computation
-  const activeProjectsCount = projects.filter(p => p.status === 'Active').length;
+  const activeProjectsCount = (projects || []).filter(p => p?.status === 'Active').length;
   
   const todayStr = new Date().toISOString().split('T')[0];
-  const todayAttendance = attendance.filter(a => a.date === todayStr);
-  const workersTodayCount = todayAttendance.filter(a => a.status === 'Present' || a.status === 'Half Day').length || 24;
+  const todayAttendance = (attendance || []).filter(a => a?.date === todayStr);
+  const workersTodayCount = todayAttendance.filter(a => a?.status === 'Present' || a?.status === 'Half Day').length || 24;
 
-  const todayExpenses = expenses.filter(e => e.date === todayStr);
-  const todayExpenseAmount = todayExpenses.reduce((acc, curr) => acc + curr.amount, 0) || 38450;
+  const todayExpenses = (expenses || []).filter(e => e?.date === todayStr);
+  const todayExpenseAmount = todayExpenses.reduce((acc, curr) => acc + (curr?.amount || 0), 0) || 38450;
 
   const avgCompletion = Math.round(
-    projects.reduce((acc, curr) => acc + curr.overallProgress, 0) / (projects.length || 1)
+    (projects || []).reduce((acc, curr) => acc + (curr?.overallProgress || 0), 0) / ((projects?.length) || 1)
   );
 
-  const lowStockItems = materials.filter(m => m.status === 'Low Stock' || m.status === 'Critical');
+  const lowStockItems = (materials || []).filter(m => m?.status === 'Low Stock' || m?.status === 'Critical');
 
   // Chart data for spend vs budget
   const spendChartData = [
@@ -222,7 +222,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
           </div>
           <div className="flex items-baseline justify-between mt-3">
             <span className="text-3xl sm:text-4xl font-bold text-white font-['Outfit',sans-serif]">
-              {activeProject.overallProgress}%
+              {activeProject?.overallProgress ?? 0}%
             </span>
             <span className="text-xs font-semibold text-amber-300">
               Phase: Finishes
@@ -231,7 +231,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
           <div className="mt-2 w-full bg-zinc-800 rounded-full h-2 overflow-hidden">
             <div
               className="bg-gradient-to-r from-amber-500 to-amber-400 h-2 rounded-full transition-all duration-500"
-              style={{ width: `${activeProject.overallProgress}%` }}
+              style={{ width: `${activeProject?.overallProgress ?? 0}%` }}
             />
           </div>
         </div>
@@ -249,7 +249,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
                   Cumulative Financials: Spent vs Allocated Budget (₹ Lakhs)
                 </h3>
                 <p className="text-xs text-zinc-400">
-                  {activeProject.name} — Total Contract: ₹{(activeProject.contractValue / 100000).toFixed(1)}L
+                  {activeProject?.name || 'Casabuild Project'} — Total Contract: ₹{(((activeProject?.contractValue || 0)) / 100000).toFixed(1)}L
                 </p>
               </div>
               <div className="flex items-center space-x-4 text-xs">
@@ -292,7 +292,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
             <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
               <div>
                 <h3 className="text-base font-semibold text-zinc-100 font-['Outfit',sans-serif]">Current Milestone Timeline</h3>
-                <p className="text-xs text-zinc-400">{activeProject.milestones.length} defined project phases</p>
+                <p className="text-xs text-zinc-400">{(activeProject?.milestones || []).length} defined project phases</p>
               </div>
               <button
                 onClick={() => onNavigate('projects')}
@@ -303,7 +303,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
             </div>
 
             <div className="mt-4 space-y-3.5">
-              {activeProject.milestones.slice(0, 4).map(m => (
+              {(activeProject?.milestones || []).slice(0, 4).map(m => (
                 <div key={m.id} className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-medium text-zinc-200">{m.title}</span>

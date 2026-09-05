@@ -278,11 +278,11 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({ isOpen, onClose 
           <div className="p-3 rounded-xl bg-zinc-900/40 border border-zinc-800 text-xs space-y-1.5">
             <span className="text-[10px] uppercase font-bold text-zinc-400">Current Dataset Ready to Sync</span>
             <div className="flex flex-wrap gap-2 pt-1 text-[11px]">
-              <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300"><strong>{projects.length}</strong> Projects</span>
-              <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300"><strong>{workers.length}</strong> Labour Profiles</span>
-              <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300"><strong>{dailyReports.length}</strong> DSR Reports</span>
-              <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300"><strong>{expenses.length}</strong> Expense Vouchers</span>
-              <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300"><strong>{vendors.length}</strong> Vendors</span>
+              <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300"><strong>{projects?.length || 0}</strong> Projects</span>
+              <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300"><strong>{workers?.length || 0}</strong> Labour Profiles</span>
+              <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300"><strong>{dailyReports?.length || 0}</strong> DSR Reports</span>
+              <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300"><strong>{expenses?.length || 0}</strong> Expense Vouchers</span>
+              <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300"><strong>{vendors?.length || 0}</strong> Vendors</span>
             </div>
           </div>
 

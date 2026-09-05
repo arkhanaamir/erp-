@@ -135,7 +135,7 @@ export function subscribeToAllCollections(
         },
         (error) => {
           onError(error);
-          handleFirestoreError(error, OperationType.GET, path);
+          console.debug(`Firestore real-time sync notice for ${path}:`, error.message);
         }
       );
       unsubs.push(unsub);

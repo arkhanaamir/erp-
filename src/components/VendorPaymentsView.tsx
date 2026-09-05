@@ -373,7 +373,7 @@ export const VendorPaymentsView: React.FC = () => {
         <div className="rounded-2xl border border-zinc-800 bg-[#161922] p-5 shadow-xl">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">Active Suppliers</span>
           <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-2xl font-extrabold text-zinc-100">{vendors.length}</span>
+            <span className="text-2xl font-extrabold text-zinc-100">{vendors?.length || 0}</span>
             <span className="text-[10px] text-zinc-400">Partner Ledgers</span>
           </div>
           <span className="text-[10px] text-zinc-500">Materials & Trades</span>
@@ -390,7 +390,7 @@ export const VendorPaymentsView: React.FC = () => {
               : 'text-zinc-400 hover:text-white bg-zinc-900 border border-zinc-800'
           }`}
         >
-          Expense Vouchers ({expenses.length})
+          Expense Vouchers ({expenses?.length || 0})
         </button>
         <button
           onClick={() => setActiveSubTab('vendors')}
@@ -400,7 +400,7 @@ export const VendorPaymentsView: React.FC = () => {
               : 'text-zinc-400 hover:text-white bg-zinc-900 border border-zinc-800'
           }`}
         >
-          Vendor & Contractor Ledgers ({vendors.length})
+          Vendor & Contractor Ledgers ({vendors?.length || 0})
         </button>
       </div>
 
@@ -486,7 +486,7 @@ export const VendorPaymentsView: React.FC = () => {
                     vendorFilter === 'All' ? 'bg-amber-500 text-zinc-950 font-bold' : 'text-zinc-400 hover:text-zinc-200'
                   }`}
                 >
-                  All ({vendors.length})
+                  All ({vendors?.length || 0})
                 </button>
                 <button
                   onClick={() => setVendorFilter('Active')}
@@ -502,13 +502,13 @@ export const VendorPaymentsView: React.FC = () => {
                     vendorFilter === 'Blacklisted' ? 'bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30' : 'text-zinc-400 hover:text-zinc-200'
                   }`}
                 >
-                  Blacklisted ({vendors.filter(v => v.isBlacklisted).length})
+                  Blacklisted ({(vendors || []).filter(v => v?.isBlacklisted).length})
                 </button>
               </div>
             </div>
 
             <div className="text-xs text-zinc-400">
-              Showing <span className="font-semibold text-zinc-200">{filteredVendors.length}</span> suppliers & subcontractors
+              Showing <span className="font-semibold text-zinc-200">{filteredVendors?.length || 0}</span> suppliers & subcontractors
             </div>
           </div>
 
