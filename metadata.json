@@ -1,0 +1,6 @@
+{
+  "name": "The Casabuild ERP",
+  "description": "Comprehensive construction and design management ERP for automated quotes, project timelines, daily site reports, labour attendance, expense tracking, material inventory, and vendor finances.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
