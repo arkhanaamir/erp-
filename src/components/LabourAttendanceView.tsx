@@ -23,10 +23,12 @@ import {
   Trash2,
   ShieldAlert,
   Lock,
-  Check
+  Check,
+  Pencil
 } from 'lucide-react';
 import { exportToExcel } from '../utils/excelExport';
 import { RecentlyDeletedModal } from './RecentlyDeletedModal';
+import { WorkerEditModal } from './WorkerEditModal';
 
 export const LabourAttendanceView: React.FC = () => {
   const {
@@ -61,6 +63,15 @@ export const LabourAttendanceView: React.FC = () => {
   const [editWorkerTrade, setEditWorkerTrade] = useState('');
   const [editWorkerPhone, setEditWorkerPhone] = useState('');
   const [editWorkerWage, setEditWorkerWage] = useState('');
+
+  // Comprehensive Worker Edit & Delete Modal State
+  const [editingWorkerForModal, setEditingWorkerForModal] = useState<Worker | null>(null);
+  const [showWorkerEditModal, setShowWorkerEditModal] = useState(false);
+
+  const handleOpenEditWorker = (w: Worker) => {
+    setEditingWorkerForModal(w);
+    setShowWorkerEditModal(true);
+  };
 
   // New Worker Form
   const [newWorkerName, setNewWorkerName] = useState('');
@@ -490,10 +501,22 @@ export const LabourAttendanceView: React.FC = () => {
                           className="h-9 w-9 rounded-full object-cover ring-1 ring-zinc-700"
                         />
                         <div>
-                          <div className="flex items-center space-x-1.5">
+                          <div className="flex items-center space-x-1.5 flex-wrap">
                             <p className="font-bold text-zinc-100 hover:text-amber-300 transition">
                               {worker.name}
                             </p>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenEditWorker(worker);
+                              }}
+                              className="inline-flex items-center space-x-1 rounded-md bg-zinc-800/90 hover:bg-amber-500/20 text-zinc-300 hover:text-amber-300 border border-zinc-700/80 hover:border-amber-500/40 px-2 py-0.5 text-[10px] font-medium transition cursor-pointer ml-1"
+                              title={`Edit employee specifications & options for ${worker.name}`}
+                            >
+                              <Pencil className="h-2.5 w-2.5 text-amber-400" />
+                              <span>Edit</span>
+                            </button>
                             {worker.isBlacklisted && (
                               <span className="rounded bg-rose-500/20 px-1.5 py-0.2 text-[9px] font-bold text-rose-400 border border-rose-500/30">
                                 BLACKLISTED
@@ -582,15 +605,27 @@ export const LabourAttendanceView: React.FC = () => {
                     <td className="py-3 px-4 text-center">
                       <div className="flex items-center justify-center space-x-1.5">
                         <button
-                          onClick={() => handleOpenProfile(worker)}
-                          className="rounded-xl bg-zinc-800 px-2.5 py-1 text-[11px] font-medium text-zinc-200 hover:bg-zinc-700 border border-zinc-700 transition"
-                          title="View and edit profile details"
+                          type="button"
+                          onClick={() => handleOpenEditWorker(worker)}
+                          className="flex items-center space-x-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 px-2.5 py-1 text-[11px] font-semibold text-amber-300 transition shadow-sm active:scale-95"
+                          title={`Edit specifications, wage, status & options for ${worker.name}`}
                         >
-                          Profile
+                          <Pencil className="h-3 w-3 text-amber-400" />
+                          <span>Edit</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleOpenProfile(worker)}
+                          className="rounded-xl bg-zinc-800 px-2 py-1 text-[11px] font-medium text-zinc-300 hover:bg-zinc-700 border border-zinc-700 transition"
+                          title="View quick ledger & attendance"
+                        >
+                          Ledger
                         </button>
 
                         {isOwner && (
                           <button
+                            type="button"
                             onClick={() => handleToggleBlacklist(worker)}
                             className={`p-1 rounded-lg border text-[11px] transition ${
                               worker.isBlacklisted
@@ -625,10 +660,23 @@ export const LabourAttendanceView: React.FC = () => {
                   className="h-14 w-14 rounded-full object-cover ring-2 ring-amber-500/40"
                 />
                 <div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-2 flex-wrap">
                     <h3 className="text-base font-bold text-zinc-100 font-['Outfit',sans-serif]">
                       {selectedWorkerProfile.name}
                     </h3>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const w = selectedWorkerProfile;
+                        setSelectedWorkerProfile(null);
+                        handleOpenEditWorker(w);
+                      }}
+                      className="inline-flex items-center space-x-1 rounded-md bg-zinc-800/90 hover:bg-amber-500/20 text-zinc-300 hover:text-amber-300 border border-zinc-700/80 hover:border-amber-500/40 px-2 py-0.5 text-[10px] font-medium transition cursor-pointer"
+                      title={`Edit employee specifications & options for ${selectedWorkerProfile.name}`}
+                    >
+                      <Pencil className="h-2.5 w-2.5 text-amber-400" />
+                      <span>Edit</span>
+                    </button>
                     {selectedWorkerProfile.isBlacklisted && (
                       <span className="rounded bg-rose-500/20 px-2 py-0.5 text-[10px] font-bold text-rose-400 border border-rose-500/30">
                         BLACKLISTED
@@ -955,6 +1003,16 @@ export const LabourAttendanceView: React.FC = () => {
         isOpen={showRecycleBinModal}
         onClose={() => setShowRecycleBinModal(false)}
         initialFilter="workers"
+      />
+
+      {/* Comprehensive Worker Edit & Delete Modal */}
+      <WorkerEditModal
+        worker={editingWorkerForModal}
+        isOpen={showWorkerEditModal}
+        onClose={() => {
+          setShowWorkerEditModal(false);
+          setEditingWorkerForModal(null);
+        }}
       />
     </div>
   );

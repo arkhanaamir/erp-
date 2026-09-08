@@ -31,8 +31,10 @@ import {
   UserX,
   ShieldAlert,
   FileSpreadsheet,
-  Check
+  Check,
+  Pencil
 } from 'lucide-react';
+import { EmployeeEditModal } from './EmployeeEditModal';
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -80,6 +82,10 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
   const [targetRole, setTargetRole] = useState<UserRole>('supervisor');
   const [targetLicense, setTargetLicense] = useState('');
   const [targetPassword, setTargetPassword] = useState('');
+
+  // Comprehensive Employee Edit Modal state
+  const [selectedEmployeeForEdit, setSelectedEmployeeForEdit] = useState<UserProfile | null>(null);
+  const [showEmployeeEditModal, setShowEmployeeEditModal] = useState(false);
 
   const isOwner = currentUser?.role === 'owner' || currentUser?.email.trim().toLowerCase() === 'ar.khanaamir@gmail.com';
 
@@ -261,8 +267,20 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
             </div>
 
             <div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 flex-wrap">
                 <h2 className="text-base font-bold text-zinc-100">{currentUser.name}</h2>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedEmployeeForEdit(currentUser);
+                    setShowEmployeeEditModal(true);
+                  }}
+                  className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-md bg-zinc-800/90 hover:bg-amber-500/20 text-zinc-300 hover:text-amber-300 border border-zinc-700/80 hover:border-amber-500/40 text-[10px] font-medium transition cursor-pointer"
+                  title="Edit user profile specifications & credentials"
+                >
+                  <Pencil className="h-2.5 w-2.5 text-amber-400" />
+                  <span>Edit</span>
+                </button>
                 <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${currentMeta.color}`}>
                   {currentUser.role.toUpperCase()}
                 </span>
@@ -858,6 +876,18 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
                             <span className={`text-xs font-bold ${isUserDisabled ? 'text-zinc-400 line-through' : 'text-zinc-100'}`}>
                               {u.name}
                             </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedEmployeeForEdit(u);
+                                setShowEmployeeEditModal(true);
+                              }}
+                              className="inline-flex items-center space-x-1 ml-0.5 px-2 py-0.5 rounded-md bg-zinc-800/90 hover:bg-amber-500/20 text-zinc-300 hover:text-amber-300 border border-zinc-700/80 hover:border-amber-500/40 text-[10px] font-medium transition cursor-pointer"
+                              title={`Edit employee specifications & options for ${u.name}`}
+                            >
+                              <Pencil className="h-2.5 w-2.5 text-amber-400" />
+                              <span>Edit</span>
+                            </button>
                             <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium border ${meta.color}`}>
                               {u.role.toUpperCase()}
                             </span>
@@ -891,29 +921,31 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
                         </div>
                       </div>
 
-                      {/* Management Actions (Owner Exclusive) */}
+                      {/* Management Actions */}
                       <div className="flex items-center space-x-1.5 self-end sm:self-center shrink-0">
-                        {/* Edit Profile Button */}
+                        {/* Edit Employee Button */}
                         <button
+                          type="button"
                           onClick={() => {
-                            setShowAddUserModal(false);
-                            handleStartEditTargetUser(u);
+                            setSelectedEmployeeForEdit(u);
+                            setShowEmployeeEditModal(true);
                           }}
-                          className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg border border-zinc-700 bg-zinc-800 text-zinc-200 text-xs hover:bg-zinc-700 transition"
-                          title="Edit profile and contact details"
+                          className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-300 text-xs font-semibold hover:bg-amber-500/20 transition shadow-sm active:scale-95"
+                          title={`Edit employee specifications, role, projects & delete options for ${u.name}`}
                         >
-                          <Edit3 className="h-3 w-3 text-amber-400" />
+                          <Pencil className="h-3 w-3 text-amber-400" />
                           <span>Edit</span>
                         </button>
 
                         {/* Disable / Enable Button */}
                         {!isAamirOwner && (
                           <button
+                            type="button"
                             onClick={() => toggleUserDisabled(u.id)}
                             className={`flex items-center space-x-1 px-2.5 py-1.5 rounded-lg border text-xs transition ${
                               isUserDisabled
                                 ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20'
-                                : 'border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20'
+                                : 'border-zinc-700 bg-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-700'
                             }`}
                             title={isUserDisabled ? 'Re-enable account login' : 'Disable and suspend account login'}
                           >
@@ -928,21 +960,6 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
                                 <span>Disable</span>
                               </>
                             )}
-                          </button>
-                        )}
-
-                        {/* Delete Button */}
-                        {!isAamirOwner && (
-                          <button
-                            onClick={() => {
-                              if (window.confirm(`Move employee profile for "${u.name}" to the Recently Deleted bin?\n\nThis employee profile will be safely archived for 30 days and can be restored at any time by administrators.`)) {
-                                deleteUser(u.id);
-                              }
-                            }}
-                            className="p-1.5 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition"
-                            title="Move to Recently Deleted bin (30-day recovery window)"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
                           </button>
                         )}
                       </div>
@@ -971,6 +988,16 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
         isOpen={showRecycleBinModal}
         onClose={() => setShowRecycleBinModal(false)}
         initialFilter="users"
+      />
+
+      {/* Comprehensive Employee Edit & Delete Modal */}
+      <EmployeeEditModal
+        employee={selectedEmployeeForEdit}
+        isOpen={showEmployeeEditModal}
+        onClose={() => {
+          setShowEmployeeEditModal(false);
+          setSelectedEmployeeForEdit(null);
+        }}
       />
     </div>
   );
