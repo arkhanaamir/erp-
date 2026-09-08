@@ -26,6 +26,7 @@ import {
   Check
 } from 'lucide-react';
 import { exportToExcel } from '../utils/excelExport';
+import { RecentlyDeletedModal } from './RecentlyDeletedModal';
 
 export const LabourAttendanceView: React.FC = () => {
   const {
@@ -37,12 +38,15 @@ export const LabourAttendanceView: React.FC = () => {
     deleteWorker,
     toggleWorkerBlacklist,
     toggleWorkerDisabled,
+    recentlyDeletedItems,
     currentUser,
     activeProjectId,
     activeProject
   } = useCasabuild();
 
   const isOwner = currentUser?.role === 'owner' || currentUser?.email.trim().toLowerCase() === 'ar.khanaamir@gmail.com';
+  const deletedWorkersCount = (recentlyDeletedItems || []).filter(i => i.itemType === 'employee_worker').length;
+  const [showRecycleBinModal, setShowRecycleBinModal] = useState(false);
 
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [tradeFilter, setTradeFilter] = useState('All');
@@ -158,7 +162,7 @@ export const LabourAttendanceView: React.FC = () => {
       alert('Deleting worker profiles is strictly restricted to Managing Owner Ar. Aamir Khan.');
       return;
     }
-    if (window.confirm(`Are you sure you want to permanently delete profile for "${w.name}"?`)) {
+    if (window.confirm(`Move worker profile for "${w.name}" to the Recently Deleted bin?\n\nThis worker record will be safely archived for 30 days and can be restored at any time from the Recycle Bin.`)) {
       deleteWorker(w.id);
       setSelectedWorkerProfile(null);
     }
@@ -279,6 +283,25 @@ export const LabourAttendanceView: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            id="labour-recently-deleted-btn"
+            onClick={() => setShowRecycleBinModal(true)}
+            className={`flex items-center space-x-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition ${
+              deletedWorkersCount > 0
+                ? 'border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20'
+                : 'border-zinc-800 bg-zinc-900/80 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
+            }`}
+            title="Recently Deleted Workers Bin (30-day restore window)"
+          >
+            <Trash2 className="h-4 w-4 text-rose-400" />
+            <span>Deleted Workers</span>
+            {deletedWorkersCount > 0 && (
+              <span className="ml-1 inline-flex items-center justify-center rounded-full bg-amber-500/25 px-1.5 py-0.2 text-[10px] font-bold text-amber-300 border border-amber-500/40">
+                {deletedWorkersCount}
+              </span>
+            )}
+          </button>
+
           <button
             id="labour-export-muster-excel-btn"
             onClick={handleExportMusterRoll}
@@ -926,6 +949,13 @@ export const LabourAttendanceView: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* 30-Day Recently Deleted Bin Modal for Workers */}
+      <RecentlyDeletedModal
+        isOpen={showRecycleBinModal}
+        onClose={() => setShowRecycleBinModal(false)}
+        initialFilter="workers"
+      />
     </div>
   );
 };

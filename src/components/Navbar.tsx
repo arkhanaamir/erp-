@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useCasabuild } from '../context/CasabuildContext';
-import { UserRole } from '../types';
+import { UserRole, Project } from '../types';
 import { UserProfileModal } from './UserProfileModal';
 import { CloudSyncModal } from './CloudSyncModal';
 import {
@@ -25,8 +25,12 @@ import {
   SlidersHorizontal,
   Cloud,
   CloudOff,
-  RefreshCw
+  RefreshCw,
+  Trash2,
+  Pencil,
 } from 'lucide-react';
+import { RecentlyDeletedModal } from './RecentlyDeletedModal';
+import { ProjectEditModal } from './ProjectEditModal';
 
 interface NavbarProps {
   onOpenQuickAction: () => void;
@@ -48,12 +52,16 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenQuickAction, onNavigateToT
     cloudSyncStatus,
     firebaseUser,
     isOwner,
+    recentlyDeletedCount,
   } = useCasabuild();
 
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showSyncModal, setShowSyncModal] = useState(false);
+  const [showRecentlyDeletedModal, setShowRecentlyDeletedModal] = useState(false);
   const [showProjectDropdown, setShowProjectDropdown] = useState(false);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [showEditProjectModal, setShowEditProjectModal] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
   const lowStockCount = (materials || []).filter(m => m?.status === 'Low Stock' || m?.status === 'Critical').length;
@@ -149,27 +157,45 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenQuickAction, onNavigateToT
                   </div>
                   <div className="space-y-1">
                     {projects.map(p => (
-                      <button
+                      <div
                         key={p.id}
-                        onClick={() => {
-                          setActiveProjectId(p.id);
-                          setShowProjectDropdown(false);
-                        }}
-                        className={`w-full flex items-start justify-between rounded-xl p-2 text-left text-xs transition ${
+                        className={`group flex items-center justify-between rounded-xl p-1.5 transition ${
                           p.id === activeProjectId
                             ? 'bg-amber-500/15 text-amber-200 border border-amber-500/30'
                             : 'hover:bg-zinc-800/60 text-zinc-300'
                         }`}
                       >
-                        <div>
-                          <p className="font-medium text-zinc-100">{p.name}</p>
-                          <p className="text-[10px] text-zinc-400">{p.location}</p>
-                        </div>
-                        <div className="text-right">
-                          <span className="text-[10px] font-bold text-amber-400">{p.overallProgress}%</span>
-                          <span className="block text-[9px] text-zinc-500">{p.type}</span>
-                        </div>
-                      </button>
+                        <button
+                          onClick={() => {
+                            setActiveProjectId(p.id);
+                            setShowProjectDropdown(false);
+                          }}
+                          className="flex-1 flex items-start justify-between text-left p-1"
+                        >
+                          <div>
+                            <p className="font-medium text-zinc-100 group-hover:text-amber-300 transition text-xs">{p.name}</p>
+                            <p className="text-[10px] text-zinc-400">{p.location}</p>
+                          </div>
+                          <div className="text-right mr-2">
+                            <span className="text-[10px] font-bold text-amber-400">{p.overallProgress}%</span>
+                            <span className="block text-[9px] text-zinc-500">{p.type}</span>
+                          </div>
+                        </button>
+
+                        <button
+                          id={`navbar-edit-project-${p.id}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingProject(p);
+                            setShowEditProjectModal(true);
+                            setShowProjectDropdown(false);
+                          }}
+                          className="p-1.5 rounded-lg text-zinc-400 hover:text-amber-300 hover:bg-zinc-700/60 transition shrink-0"
+                          title={`Edit ${p.name} (area, location, milestones, BOQ, contracts & delete)`}
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </button>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -192,6 +218,26 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenQuickAction, onNavigateToT
               <span className="sm:hidden">New</span>
             </button>
           )}
+
+          {/* Recently Deleted Recycle Bin Button */}
+          <button
+            id="navbar-recently-deleted-btn"
+            onClick={() => setShowRecentlyDeletedModal(true)}
+            className={`relative flex items-center space-x-1.5 rounded-xl border px-2.5 py-1.5 text-xs font-medium transition ${
+              recentlyDeletedCount > 0
+                ? 'border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20'
+                : 'border-zinc-800 bg-zinc-900/80 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
+            }`}
+            title="Recently Deleted Bin (30-Day Recovery Window for Projects, Personnel & Workers)"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            <span className="hidden lg:inline text-[11px]">Recycle Bin</span>
+            {recentlyDeletedCount > 0 && (
+              <span className="ml-1 inline-flex items-center justify-center rounded-full bg-amber-500/25 px-1.5 py-0.2 text-[10px] font-bold text-amber-300 border border-amber-500/40">
+                {recentlyDeletedCount}
+              </span>
+            )}
+          </button>
 
           {/* Cloud Sync Status Indicator Pill */}
           <button
@@ -305,6 +351,24 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenQuickAction, onNavigateToT
                   >
                     <User className="h-4 w-4 text-amber-400" />
                     <span>View Profile & Role Permissions Matrix</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowUserDropdown(false);
+                      setShowRecentlyDeletedModal(true);
+                    }}
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs text-zinc-200 hover:bg-zinc-800/80 hover:text-amber-300 transition"
+                  >
+                    <div className="flex items-center space-x-2.5">
+                      <Trash2 className="h-4 w-4 text-rose-400" />
+                      <span>Recently Deleted Bin (30-Day Window)</span>
+                    </div>
+                    {recentlyDeletedCount > 0 && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                        {recentlyDeletedCount}
+                      </span>
+                    )}
                   </button>
                 </div>
 
@@ -452,6 +516,22 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenQuickAction, onNavigateToT
       <CloudSyncModal
         isOpen={showSyncModal}
         onClose={() => setShowSyncModal(false)}
+      />
+
+      {/* 30-Day Recently Deleted Recycle Bin Modal */}
+      <RecentlyDeletedModal
+        isOpen={showRecentlyDeletedModal}
+        onClose={() => setShowRecentlyDeletedModal(false)}
+      />
+
+      {/* Comprehensive Project Edit Modal */}
+      <ProjectEditModal
+        project={editingProject}
+        isOpen={showEditProjectModal}
+        onClose={() => {
+          setShowEditProjectModal(false);
+          setEditingProject(null);
+        }}
       />
     </header>
   );

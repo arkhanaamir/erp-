@@ -22,6 +22,9 @@ export interface UserProfile {
   lastLogin?: string;
   disabled?: boolean;
   status?: 'Active' | 'Disabled';
+  isDeleted?: boolean;
+  deletedAt?: string; // ISO date string
+  deletedBy?: string; // Admin who deleted
 }
 
 export interface ProjectMilestone {
@@ -80,6 +83,9 @@ export interface Project {
   milestones: ProjectMilestone[];
   drawings: DrawingItem[];
   boq: BOQItem[];
+  isDeleted?: boolean;
+  deletedAt?: string; // ISO date string
+  deletedBy?: string; // Admin who deleted
 }
 
 export interface DailySiteReport {
@@ -114,6 +120,9 @@ export interface Worker {
   isBlacklisted?: boolean;
   blacklistReason?: string;
   disabled?: boolean;
+  isDeleted?: boolean;
+  deletedAt?: string; // ISO date string
+  deletedBy?: string; // Admin who deleted
 }
 
 export interface AttendanceRecord {
@@ -294,4 +303,20 @@ export interface QuoteEstimateResponse {
     amount: number;
   }[];
   disclaimer: string;
+}
+
+export type SoftDeletedType = 'project' | 'employee_staff' | 'employee_worker';
+
+export interface SoftDeletedItem {
+  id: string;
+  itemType: SoftDeletedType;
+  title: string;
+  codeOrRole: string;
+  subtitle: string;
+  badge: string;
+  deletedAt: string;
+  deletedBy: string;
+  daysRemaining: number;
+  isExpired: boolean;
+  meta: Record<string, string | number | undefined>;
 }

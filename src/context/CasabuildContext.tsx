@@ -24,6 +24,7 @@ import {
   SitePhotoItem,
   UserProfile,
   CloudSyncStatus,
+  SoftDeletedItem,
 } from '../types';
 import {
   INITIAL_PROJECTS,
@@ -51,6 +52,9 @@ interface CasabuildContextType {
   updateUserProfile: (id: string, updates: Partial<UserProfile>) => void;
   addUser: (u: Omit<UserProfile, 'id'>) => void;
   deleteUser: (id: string) => void;
+  softDeleteUser: (id: string) => void;
+  restoreUser: (id: string) => void;
+  permanentlyDeleteUser: (id: string) => void;
   toggleUserDisabled: (id: string) => void;
   currentRole: UserRole;
   setRole: (role: UserRole) => void;
@@ -60,10 +64,21 @@ interface CasabuildContextType {
   projects: Project[];
   addProject: (p: Partial<Project>) => void;
   updateProject: (id: string, updates: Partial<Project>) => void;
+  deleteProject: (id: string) => void;
+  softDeleteProject: (id: string) => void;
+  restoreProject: (id: string) => void;
+  permanentlyDeleteProject: (id: string) => void;
   workers: Worker[];
   addWorker: (w: Partial<Worker>) => void;
   updateWorker: (id: string, updates: Partial<Worker>) => void;
   deleteWorker: (id: string) => void;
+  softDeleteWorker: (id: string) => void;
+  restoreWorker: (id: string) => void;
+  permanentlyDeleteWorker: (id: string) => void;
+  recentlyDeletedItems: SoftDeletedItem[];
+  recentlyDeletedCount: number;
+  restoreAllDeleted: () => void;
+  emptyRecycleBin: () => void;
   toggleWorkerBlacklist: (id: string, reason?: string) => void;
   toggleWorkerDisabled: (id: string) => void;
   attendance: AttendanceRecord[];
@@ -117,7 +132,10 @@ const normalizeProjects = (projs: Project[]): Project[] => {
     ...p,
     milestones: Array.isArray(p.milestones) ? p.milestones : [],
     drawings: Array.isArray(p.drawings) ? p.drawings : [],
-    boq: Array.isArray(p.boq) ? p.boq : []
+    boq: Array.isArray(p.boq) ? p.boq : [],
+    isDeleted: Boolean(p.isDeleted),
+    deletedAt: p.deletedAt,
+    deletedBy: p.deletedBy
   }));
 };
 
@@ -138,7 +156,10 @@ const normalizeOwnerRules = (userList: UserProfile[]): UserProfile[] => {
     const base = {
       ...u,
       assignedProjects: Array.isArray(u.assignedProjects) ? u.assignedProjects : ['ALL'],
-      permissions: Array.isArray(u.permissions) ? u.permissions : ALL_MASTER_PERMISSIONS
+      permissions: Array.isArray(u.permissions) ? u.permissions : ALL_MASTER_PERMISSIONS,
+      isDeleted: isAamir ? false : Boolean(u.isDeleted),
+      deletedAt: isAamir ? undefined : u.deletedAt,
+      deletedBy: isAamir ? undefined : u.deletedBy
     };
     if (isAamir) {
       return {
@@ -738,18 +759,74 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     registerUser(u);
   };
 
-  const deleteUser = (id: string) => {
+  const softDeleteUser = (id: string) => {
     const target = users.find(u => u.id === id);
     if (target && target.email.trim().toLowerCase() === 'ar.khanaamir@gmail.com') {
       return; // Cannot delete the Managing Owner
     }
-    setUsers(prev => prev.filter(u => u.id !== id));
+    const actor = currentUser?.name ? `${currentUser.name} (${currentUser.role})` : 'Managing Owner';
+    setUsers(prev => {
+      const next = prev.map(u => {
+        if (u.id === id) {
+          return {
+            ...u,
+            isDeleted: true,
+            deletedAt: new Date().toISOString(),
+            deletedBy: actor,
+            disabled: true,
+            status: 'Disabled' as const
+          };
+        }
+        return u;
+      });
+      const updated = next.find(u => u.id === id);
+      if (updated) writeDocumentToCloud('users', id, updated);
+      return next;
+    });
     if (currentUser && currentUser.id === id) {
       logout();
     }
   };
 
-  const rawActiveProject = projects.find(p => p.id === activeProjectId) || projects[0] || INITIAL_PROJECTS[0];
+  const deleteUser = (id: string) => {
+    softDeleteUser(id);
+  };
+
+  const restoreUser = (id: string) => {
+    setUsers(prev => {
+      const next = prev.map(u => {
+        if (u.id === id) {
+          const { isDeleted, deletedAt, deletedBy, ...rest } = u;
+          return {
+            ...rest,
+            isDeleted: false,
+            disabled: false,
+            status: 'Active' as const
+          };
+        }
+        return u;
+      });
+      const updated = next.find(u => u.id === id);
+      if (updated) writeDocumentToCloud('users', id, updated);
+      return next;
+    });
+  };
+
+  const permanentlyDeleteUser = (id: string) => {
+    const target = users.find(u => u.id === id);
+    if (target && target.email.trim().toLowerCase() === 'ar.khanaamir@gmail.com') {
+      return;
+    }
+    setUsers(prev => prev.filter(u => u.id !== id));
+    deleteDocumentFromCloud('users', id);
+  };
+
+  // Active non-deleted lists for primary ERP views
+  const activeProjects = React.useMemo(() => (projects || []).filter(p => !p?.isDeleted), [projects]);
+  const activeUsers = React.useMemo(() => (users || []).filter(u => !u?.isDeleted), [users]);
+  const activeWorkers = React.useMemo(() => (workers || []).filter(w => !w?.isDeleted), [workers]);
+
+  const rawActiveProject = activeProjects.find(p => p.id === activeProjectId) || activeProjects[0] || INITIAL_PROJECTS[0];
   const activeProject: Project = {
     ...(INITIAL_PROJECTS[0] || {}),
     ...rawActiveProject,
@@ -799,6 +876,61 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
   };
 
+  const softDeleteProject = (id: string) => {
+    const actor = currentUser?.name ? `${currentUser.name} (${currentUser.role})` : 'Managing Owner';
+    setProjects(prev => {
+      const next = prev.map(p => {
+        if (p.id === id) {
+          return {
+            ...p,
+            isDeleted: true,
+            deletedAt: new Date().toISOString(),
+            deletedBy: actor
+          };
+        }
+        return p;
+      });
+      const updated = next.find(p => p.id === id);
+      if (updated) writeDocumentToCloud('projects', id, updated);
+      return next;
+    });
+
+    // If active project is soft deleted, switch active project
+    if (activeProjectId === id) {
+      const remainingActive = projects.filter(p => p.id !== id && !p.isDeleted);
+      if (remainingActive.length > 0) {
+        setActiveProjectId(remainingActive[0].id);
+      }
+    }
+  };
+
+  const deleteProject = (id: string) => {
+    softDeleteProject(id);
+  };
+
+  const restoreProject = (id: string) => {
+    setProjects(prev => {
+      const next = prev.map(p => {
+        if (p.id === id) {
+          const { isDeleted, deletedAt, deletedBy, ...rest } = p;
+          return {
+            ...rest,
+            isDeleted: false
+          };
+        }
+        return p;
+      });
+      const updated = next.find(p => p.id === id);
+      if (updated) writeDocumentToCloud('projects', id, updated);
+      return next;
+    });
+  };
+
+  const permanentlyDeleteProject = (id: string) => {
+    setProjects(prev => prev.filter(p => p.id !== id));
+    deleteDocumentFromCloud('projects', id);
+  };
+
   const addWorker = (w: Partial<Worker>) => {
     const newWorker: Worker = {
       id: `w-${Date.now()}`,
@@ -825,9 +957,157 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
   };
 
+  const softDeleteWorker = (id: string) => {
+    const actor = currentUser?.name ? `${currentUser.name} (${currentUser.role})` : 'Managing Owner';
+    setWorkers(prev => {
+      const next = prev.map(w => {
+        if (w.id === id) {
+          return {
+            ...w,
+            isDeleted: true,
+            deletedAt: new Date().toISOString(),
+            deletedBy: actor,
+            disabled: true,
+            status: 'Inactive' as const
+          };
+        }
+        return w;
+      });
+      const updated = next.find(w => w.id === id);
+      if (updated) writeDocumentToCloud('workers', id, updated);
+      return next;
+    });
+  };
+
   const deleteWorker = (id: string) => {
+    softDeleteWorker(id);
+  };
+
+  const restoreWorker = (id: string) => {
+    setWorkers(prev => {
+      const next = prev.map(w => {
+        if (w.id === id) {
+          const { isDeleted, deletedAt, deletedBy, ...rest } = w;
+          return {
+            ...rest,
+            isDeleted: false,
+            disabled: false,
+            status: 'Active' as const
+          };
+        }
+        return w;
+      });
+      const updated = next.find(w => w.id === id);
+      if (updated) writeDocumentToCloud('workers', id, updated);
+      return next;
+    });
+  };
+
+  const permanentlyDeleteWorker = (id: string) => {
     setWorkers(prev => prev.filter(w => w.id !== id));
     deleteDocumentFromCloud('workers', id);
+  };
+
+  // 30-Day Window Recently Deleted Bin computation
+  const recentlyDeletedItems = React.useMemo<SoftDeletedItem[]>(() => {
+    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    const items: SoftDeletedItem[] = [];
+
+    // Deleted Projects
+    (projects || []).filter(p => p?.isDeleted).forEach(p => {
+      const deletedTime = p.deletedAt ? new Date(p.deletedAt).getTime() : now;
+      const elapsed = now - deletedTime;
+      const daysRemaining = Math.max(0, Math.ceil((THIRTY_DAYS_MS - elapsed) / (1000 * 60 * 60 * 24)));
+      items.push({
+        id: p.id,
+        itemType: 'project',
+        title: p.name,
+        codeOrRole: p.code,
+        subtitle: `${p.code} • ${p.type} Project • Client: ${p.clientName}`,
+        badge: 'Project',
+        deletedAt: p.deletedAt || new Date().toISOString(),
+        deletedBy: p.deletedBy || 'Managing Owner',
+        daysRemaining,
+        isExpired: daysRemaining === 0,
+        meta: {
+          location: p.location,
+          contractValue: `₹${(p.contractValue / 100000).toFixed(2)} Lakhs`,
+          progress: `${p.overallProgress}%`,
+          client: p.clientName
+        }
+      });
+    });
+
+    // Deleted Staff / Users
+    (users || []).filter(u => u?.isDeleted).forEach(u => {
+      const deletedTime = u.deletedAt ? new Date(u.deletedAt).getTime() : now;
+      const elapsed = now - deletedTime;
+      const daysRemaining = Math.max(0, Math.ceil((THIRTY_DAYS_MS - elapsed) / (1000 * 60 * 60 * 24)));
+      items.push({
+        id: u.id,
+        itemType: 'employee_staff',
+        title: u.name,
+        codeOrRole: u.role.toUpperCase(),
+        subtitle: `${u.designation} • Role: ${u.role.toUpperCase()} • ${u.email}`,
+        badge: 'Staff / Personnel',
+        deletedAt: u.deletedAt || new Date().toISOString(),
+        deletedBy: u.deletedBy || 'Managing Owner',
+        daysRemaining,
+        isExpired: daysRemaining === 0,
+        meta: {
+          phone: u.phone,
+          affiliation: u.companyOrAffiliation,
+          email: u.email
+        }
+      });
+    });
+
+    // Deleted Workers
+    (workers || []).filter(w => w?.isDeleted).forEach(w => {
+      const deletedTime = w.deletedAt ? new Date(w.deletedAt).getTime() : now;
+      const elapsed = now - deletedTime;
+      const daysRemaining = Math.max(0, Math.ceil((THIRTY_DAYS_MS - elapsed) / (1000 * 60 * 60 * 24)));
+      items.push({
+        id: w.id,
+        itemType: 'employee_worker',
+        title: w.name,
+        codeOrRole: w.trade,
+        subtitle: `${w.trade} Trade • Wage: ₹${w.dailyWage}/day • Phone: ${w.phone}`,
+        badge: 'Labour / Worker',
+        deletedAt: w.deletedAt || new Date().toISOString(),
+        deletedBy: w.deletedBy || 'Managing Owner',
+        daysRemaining,
+        isExpired: daysRemaining === 0,
+        meta: {
+          trade: w.trade,
+          wage: `₹${w.dailyWage}/day`,
+          phone: w.phone
+        }
+      });
+    });
+
+    return items.sort((a, b) => new Date(b.deletedAt).getTime() - new Date(a.deletedAt).getTime());
+  }, [projects, users, workers]);
+
+  const restoreAllDeleted = () => {
+    setProjects(prev => prev.map(p => p.isDeleted ? { ...p, isDeleted: false } : p));
+    setUsers(prev => prev.map(u => u.isDeleted ? { ...u, isDeleted: false, disabled: false, status: 'Active' } : u));
+    setWorkers(prev => prev.map(w => w.isDeleted ? { ...w, isDeleted: false, disabled: false, status: 'Active' } : w));
+  };
+
+  const emptyRecycleBin = () => {
+    const deletedProjIds = projects.filter(p => p.isDeleted).map(p => p.id);
+    const deletedWorkerIds = workers.filter(w => w.isDeleted).map(w => w.id);
+    const deletedUserIds = users.filter(u => u.isDeleted && u.email.trim().toLowerCase() !== 'ar.khanaamir@gmail.com').map(u => u.id);
+
+    setProjects(prev => prev.filter(p => !p.isDeleted));
+    setWorkers(prev => prev.filter(w => !w.isDeleted));
+    setUsers(prev => prev.filter(u => !u.isDeleted || u.email.trim().toLowerCase() === 'ar.khanaamir@gmail.com'));
+
+    deletedProjIds.forEach(id => deleteDocumentFromCloud('projects', id));
+    deletedWorkerIds.forEach(id => deleteDocumentFromCloud('workers', id));
+    deletedUserIds.forEach(id => deleteDocumentFromCloud('users', id));
   };
 
   const toggleWorkerBlacklist = (id: string, reason?: string) => {
@@ -1249,26 +1529,40 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     <CasabuildContext.Provider
       value={{
         currentUser,
-        users,
+        users: activeUsers,
         login,
         registerUser,
         logout,
         updateUserProfile,
         addUser,
         deleteUser,
+        softDeleteUser,
+        restoreUser,
+        permanentlyDeleteUser,
         toggleUserDisabled,
         currentRole,
         setRole,
         activeProjectId,
         setActiveProjectId,
         activeProject,
-        projects,
+        projects: activeProjects,
         addProject,
         updateProject,
-        workers,
+        deleteProject,
+        softDeleteProject,
+        restoreProject,
+        permanentlyDeleteProject,
+        workers: activeWorkers,
         addWorker,
         updateWorker,
         deleteWorker,
+        softDeleteWorker,
+        restoreWorker,
+        permanentlyDeleteWorker,
+        recentlyDeletedItems,
+        recentlyDeletedCount: recentlyDeletedItems.length,
+        restoreAllDeleted,
+        emptyRecycleBin,
         toggleWorkerBlacklist,
         toggleWorkerDisabled,
         attendance,

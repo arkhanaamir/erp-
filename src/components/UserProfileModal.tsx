@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useCasabuild } from '../context/CasabuildContext';
 import { UserRole, UserProfile } from '../types';
 import { exportToExcel } from '../utils/excelExport';
+import { RecentlyDeletedModal } from './RecentlyDeletedModal';
 import {
   X,
   User,
@@ -47,8 +48,12 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
     addUser,
     deleteUser,
     toggleUserDisabled,
+    recentlyDeletedItems,
     projects
   } = useCasabuild();
+
+  const deletedUsersCount = (recentlyDeletedItems || []).filter(i => i.itemType === 'employee_user').length;
+  const [showRecycleBinModal, setShowRecycleBinModal] = useState(false);
 
   const [activeTab, setActiveTab] = useState<'profile' | 'permissions' | 'team'>('profile');
   const [isEditing, setIsEditing] = useState(false);
@@ -538,6 +543,25 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
 
                 <div className="flex items-center space-x-2 shrink-0">
                   <button
+                    id="team-recently-deleted-btn"
+                    onClick={() => setShowRecycleBinModal(true)}
+                    className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition ${
+                      deletedUsersCount > 0
+                        ? 'border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20'
+                        : 'border-zinc-750 bg-zinc-800/90 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
+                    }`}
+                    title="Recently Deleted Staff Bin (30-day restore window)"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 text-rose-400" />
+                    <span>Deleted Staff</span>
+                    {deletedUsersCount > 0 && (
+                      <span className="ml-1 inline-flex items-center justify-center rounded-full bg-amber-500/25 px-1.5 py-0.2 text-[10px] font-bold text-amber-300 border border-amber-500/40">
+                        {deletedUsersCount}
+                      </span>
+                    )}
+                  </button>
+
+                  <button
                     id="export-users-excel-btn"
                     onClick={handleExportUsers}
                     className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 text-emerald-300 text-xs font-semibold hover:bg-emerald-500/20 transition"
@@ -911,12 +935,12 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
                         {!isAamirOwner && (
                           <button
                             onClick={() => {
-                              if (window.confirm(`Are you sure you want to permanently delete the profile for "${u.name}"? This action cannot be undone.`)) {
+                              if (window.confirm(`Move employee profile for "${u.name}" to the Recently Deleted bin?\n\nThis employee profile will be safely archived for 30 days and can be restored at any time by administrators.`)) {
                                 deleteUser(u.id);
                               }
                             }}
                             className="p-1.5 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition"
-                            title="Delete User Profile"
+                            title="Move to Recently Deleted bin (30-day recovery window)"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
@@ -941,6 +965,13 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
           </button>
         </div>
       </div>
+
+      {/* 30-Day Recently Deleted Bin Modal for Staff */}
+      <RecentlyDeletedModal
+        isOpen={showRecycleBinModal}
+        onClose={() => setShowRecycleBinModal(false)}
+        initialFilter="users"
+      />
     </div>
   );
 };

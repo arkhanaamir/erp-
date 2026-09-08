@@ -22,8 +22,12 @@ import {
   SlidersHorizontal,
   Compass,
   Building,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Trash2,
+  Pencil
 } from 'lucide-react';
+import { RecentlyDeletedModal } from './RecentlyDeletedModal';
+import { ProjectEditModal } from './ProjectEditModal';
 
 export const ProjectManagementView: React.FC = () => {
   const {
@@ -33,8 +37,15 @@ export const ProjectManagementView: React.FC = () => {
     activeProject,
     addProject,
     updateProject,
+    deleteProject,
+    recentlyDeletedItems,
     currentRole
   } = useCasabuild();
+
+  const deletedProjectsCount = (recentlyDeletedItems || []).filter(i => i.itemType === 'project').length;
+  const [showRecycleBinModal, setShowRecycleBinModal] = useState(false);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [showEditProjectModal, setShowEditProjectModal] = useState(false);
 
   const handleExportProjectsDirectory = () => {
     const headers = [
@@ -271,6 +282,25 @@ export const ProjectManagementView: React.FC = () => {
 
         <div className="flex flex-wrap items-center gap-2">
           <button
+            id="projects-recently-deleted-btn"
+            onClick={() => setShowRecycleBinModal(true)}
+            className={`flex items-center space-x-1.5 rounded-xl border px-3.5 py-2 text-xs font-semibold transition ${
+              deletedProjectsCount > 0
+                ? 'border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20'
+                : 'border-zinc-800 bg-zinc-900/80 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
+            }`}
+            title="Recently Deleted Projects Bin (30-day restore window)"
+          >
+            <Trash2 className="h-4 w-4 text-rose-400" />
+            <span>Deleted Projects</span>
+            {deletedProjectsCount > 0 && (
+              <span className="ml-1 inline-flex items-center justify-center rounded-full bg-amber-500/25 px-1.5 py-0.2 text-[10px] font-bold text-amber-300 border border-amber-500/40">
+                {deletedProjectsCount}
+              </span>
+            )}
+          </button>
+
+          <button
             onClick={handleExportProjectsDirectory}
             className="flex items-center space-x-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3.5 py-2 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20 transition"
             title="Export full projects directory to Microsoft Excel"
@@ -294,26 +324,49 @@ export const ProjectManagementView: React.FC = () => {
 
       {/* Project Selector Horizontal Pills */}
       <div className="flex space-x-2 overflow-x-auto pb-2 scrollbar-none">
-        {projects.map(p => (
-          <button
-            key={p.id}
-            id={`project-pill-${p.id}`}
-            onClick={() => setActiveProjectId(p.id)}
-            className={`flex shrink-0 items-center space-x-2 rounded-xl px-4 py-2 text-xs font-medium transition ${
-              p.id === activeProjectId
-                ? 'bg-zinc-800 text-amber-400 font-semibold shadow-md border border-amber-500/30'
-                : 'bg-[#161922] text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 border border-zinc-800'
-            }`}
-          >
-            <Building className="h-3.5 w-3.5 text-amber-500" />
-            <span>{p.name}</span>
-            <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${
-              p.id === activeProjectId ? 'bg-amber-500/20 text-amber-400' : 'bg-zinc-800 text-zinc-400'
-            }`}>
-              {p.overallProgress}%
-            </span>
-          </button>
-        ))}
+        {projects.map(p => {
+          const isActive = p.id === activeProjectId;
+          return (
+            <div
+              key={p.id}
+              className={`flex shrink-0 items-center rounded-xl p-1 transition ${
+                isActive
+                  ? 'bg-zinc-800 border border-amber-500/40 shadow-md'
+                  : 'bg-[#161922] border border-zinc-800 hover:border-zinc-700'
+              }`}
+            >
+              <button
+                id={`project-pill-${p.id}`}
+                onClick={() => setActiveProjectId(p.id)}
+                className="flex items-center space-x-2 px-3 py-1.5 text-xs font-medium"
+              >
+                <Building className="h-3.5 w-3.5 text-amber-500" />
+                <span className={isActive ? 'text-amber-300 font-semibold' : 'text-zinc-300'}>
+                  {p.name}
+                </span>
+                <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${
+                  isActive ? 'bg-amber-500/20 text-amber-400' : 'bg-zinc-850 text-zinc-400'
+                }`}>
+                  {p.overallProgress}%
+                </span>
+              </button>
+
+              <button
+                id={`edit-project-pill-btn-${p.id}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setEditingProject(p);
+                  setShowEditProjectModal(true);
+                }}
+                className="ml-0.5 flex items-center space-x-1 rounded-lg px-2 py-1 text-[11px] font-medium text-zinc-400 hover:text-amber-300 hover:bg-zinc-700/60 transition"
+                title={`Edit project "${p.name}" (names, area, location, milestones, contracts, BOQ, stages, completion, and options)`}
+              >
+                <Pencil className="h-3 w-3 text-amber-400" />
+                <span className="hidden sm:inline">Edit</span>
+              </button>
+            </div>
+          );
+        })}
       </div>
 
       {/* Active Project Hero Banner */}
@@ -364,6 +417,19 @@ export const ProjectManagementView: React.FC = () => {
                   {activeProject.overallProgress}%
                 </p>
               </div>
+
+              <button
+                id="edit-active-project-btn"
+                onClick={() => {
+                  setEditingProject(activeProject);
+                  setShowEditProjectModal(true);
+                }}
+                className="flex items-center space-x-1.5 rounded-xl border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 px-4 py-3 text-xs font-semibold text-amber-300 transition shadow-sm active:scale-95"
+                title="Edit Project Specifications (names, area, location, milestones, tasks, contracts, BOQ, stages, completion, and delete)"
+              >
+                <Pencil className="h-3.5 w-3.5 text-amber-400" />
+                <span>Edit Project</span>
+              </button>
             </div>
           </div>
 
@@ -889,6 +955,23 @@ export const ProjectManagementView: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* 30-Day Recently Deleted Bin Modal for Projects */}
+      <RecentlyDeletedModal
+        isOpen={showRecycleBinModal}
+        onClose={() => setShowRecycleBinModal(false)}
+        initialFilter="projects"
+      />
+
+      {/* Comprehensive Project Edit Modal (names, area, location, milestones, contracts, BOQ, stages, completion, and options) */}
+      <ProjectEditModal
+        project={editingProject}
+        isOpen={showEditProjectModal}
+        onClose={() => {
+          setShowEditProjectModal(false);
+          setEditingProject(null);
+        }}
+      />
     </div>
   );
 };
