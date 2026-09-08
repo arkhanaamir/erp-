@@ -32,7 +32,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const { currentRole, materials, dailyReports, isOwner } = useCasabuild();
 
-  const lowStockCount = materials.filter(m => m.status === 'Low Stock' || m.status === 'Critical').length;
+  const lowStockCount = (materials || []).filter(m => m?.status === 'Low Stock' || m?.status === 'Critical').length;
 
   const navItems = [
     { id: 'dashboard', label: 'Command Center', icon: LayoutDashboard, badge: null, roles: ['owner', 'architect', 'supervisor', 'accountant', 'contractor'] },

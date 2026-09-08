@@ -308,7 +308,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
                   : 'border-transparent text-zinc-400 hover:text-zinc-200'
               }`}
             >
-              Enterprise Users Directory ({users.length})
+              Enterprise Users Directory ({users?.length || 0})
             </button>
           )}
         </div>
@@ -528,7 +528,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
                   <div className="flex items-center space-x-2">
                     <h4 className="text-sm font-bold text-zinc-100">Enterprise Personnel & Staff Directory</h4>
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono font-medium border border-amber-500/30">
-                      {users.length} Registered
+                      {users?.length || 0} Registered
                     </span>
                   </div>
                   <p className="text-xs text-zinc-400 mt-1">

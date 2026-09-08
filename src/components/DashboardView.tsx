@@ -378,7 +378,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
           </div>
 
           {/* Low Stock Material Inventory Alert Card */}
-          {lowStockItems.length > 0 && (
+          {(lowStockItems?.length || 0) > 0 && (
             <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5 shadow-xl">
               <div className="flex items-start justify-between">
                 <div className="flex items-center space-x-2">
@@ -395,7 +395,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
                 </button>
               </div>
               <div className="mt-3 space-y-2">
-                {lowStockItems.slice(0, 3).map(m => (
+                {(lowStockItems || []).slice(0, 3).map(m => (
                   <div key={m.id} className="flex items-center justify-between text-xs py-1 border-b border-zinc-800/60 last:border-0">
                     <span className="text-zinc-200 truncate max-w-[150px]">{m.name}</span>
                     <span className="font-semibold text-amber-300">{m.currentBalance} {m.unit}</span>
@@ -416,10 +416,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
               </span>
             </div>
 
-            {dailyReports.length > 0 && (
+            {(dailyReports?.length || 0) > 0 && dailyReports[0] ? (
               <div className="mt-3.5 space-y-2.5">
                 <div className="flex items-center justify-between text-xs text-zinc-400">
-                  <span>Logged by: {dailyReports[0].supervisorName}</span>
+                  <span>Logged by: {dailyReports[0].supervisorName || 'Supervisor'}</span>
                   <span>{dailyReports[0].date}</span>
                 </div>
                 <p className="text-xs text-zinc-200 line-clamp-3 leading-relaxed">
@@ -436,6 +436,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
                 >
                   View Full Daily Reports Log
                 </button>
+              </div>
+            ) : (
+              <div className="mt-3.5 text-xs text-zinc-400">
+                No daily site reports logged yet.
               </div>
             )}
           </div>

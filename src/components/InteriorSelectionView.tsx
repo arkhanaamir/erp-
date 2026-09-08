@@ -86,7 +86,7 @@ export const InteriorSelectionView: React.FC = () => {
           </button>
 
           <span className="rounded-full bg-emerald-500/15 text-emerald-300 px-3 py-1 text-xs font-semibold border border-emerald-500/30">
-            {interiorSelections.filter(i => i.status === 'Approved').length} / {interiorSelections.length} Approved
+            {(interiorSelections || []).filter(i => i?.status === 'Approved').length} / {interiorSelections?.length || 0} Approved
           </span>
         </div>
       </div>

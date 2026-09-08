@@ -56,7 +56,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenQuickAction, onNavigateToT
   const [showProjectDropdown, setShowProjectDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
-  const lowStockCount = materials.filter(m => m.status === 'Low Stock' || m.status === 'Critical').length;
+  const lowStockCount = (materials || []).filter(m => m?.status === 'Low Stock' || m?.status === 'Critical').length;
 
   const roleConfigs: Record<UserRole, { label: string; icon: any; color: string; desc: string }> = {
     owner: {

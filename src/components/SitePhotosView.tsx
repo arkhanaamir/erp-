@@ -101,7 +101,7 @@ export const SitePhotosView: React.FC = () => {
         </div>
 
         <div className="text-zinc-400 text-xs">
-          Showing <span className="font-semibold text-zinc-200">{filteredPhotos.length}</span> documented photos
+          Showing <span className="font-semibold text-zinc-200">{filteredPhotos?.length || 0}</span> documented photos
         </div>
       </div>
 

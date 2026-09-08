@@ -53,14 +53,14 @@ export const MaterialInventoryView: React.FC = () => {
   const [matThreshold, setMatThreshold] = useState('30');
   const [matCost, setMatCost] = useState('400');
 
-  const filteredMaterials = materials.filter(m => {
+  const filteredMaterials = (materials || []).filter(m => {
     const matchCat = categoryFilter === 'All' || m.category === categoryFilter;
-    const matchSearch = m.name.toLowerCase().includes(searchQuery.toLowerCase()) || m.supplier.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchSearch = (m.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || (m.supplier || '').toLowerCase().includes(searchQuery.toLowerCase());
     return matchCat && matchSearch;
   });
 
-  const lowStockCount = materials.filter(m => m.status === 'Low Stock' || m.status === 'Critical').length;
-  const totalInventoryValue = materials.reduce((acc, curr) => acc + (curr.currentBalance * curr.unitCost), 0);
+  const lowStockCount = (materials || []).filter(m => m?.status === 'Low Stock' || m?.status === 'Critical').length;
+  const totalInventoryValue = (materials || []).reduce((acc, curr) => acc + ((curr?.currentBalance || 0) * (curr?.unitCost || 0)), 0);
 
   const handleReceive = (e: React.FormEvent) => {
     e.preventDefault();
@@ -179,7 +179,7 @@ export const MaterialInventoryView: React.FC = () => {
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <div className="rounded-2xl border border-zinc-800 bg-[#161922] p-5 shadow-xl">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">Total Items Tracked</span>
-          <p className="mt-2 text-2xl font-extrabold text-zinc-100">{materials.length}</p>
+          <p className="mt-2 text-2xl font-extrabold text-zinc-100">{materials?.length || 0}</p>
           <span className="text-[10px] text-zinc-500">Across 6 construction categories</span>
         </div>
 
@@ -198,7 +198,7 @@ export const MaterialInventoryView: React.FC = () => {
           <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">Total Asset Value</span>
           <div className="mt-2 flex items-baseline justify-between">
             <span className="text-2xl font-extrabold text-amber-400">
-              ₹{(totalInventoryValue / 100000).toFixed(2)}L
+              ₹{((totalInventoryValue || 0) / 100000).toFixed(2)}L
             </span>
             <span className="text-[10px] text-zinc-400">At site stores</span>
           </div>
@@ -209,7 +209,7 @@ export const MaterialInventoryView: React.FC = () => {
           <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">Primary Cement Stock</span>
           <div className="mt-2 flex items-baseline justify-between">
             <span className="text-2xl font-extrabold text-emerald-400">
-              {materials.find(m => m.name.includes('Cement'))?.currentBalance || 56} Bags
+              {(materials || []).find(m => m?.name?.includes('Cement'))?.currentBalance || 56} Bags
             </span>
             <span className="text-[10px] text-zinc-400">UltraTech 53</span>
           </div>
@@ -247,7 +247,7 @@ export const MaterialInventoryView: React.FC = () => {
         </div>
 
         <div className="text-xs text-zinc-400">
-          Showing <span className="font-semibold text-zinc-200">{filteredMaterials.length}</span> warehouse & site items
+          Showing <span className="font-semibold text-zinc-200">{filteredMaterials?.length || 0}</span> warehouse & site items
         </div>
       </div>
 
