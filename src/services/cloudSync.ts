@@ -93,6 +93,7 @@ export async function uploadAllToCloud(state: CasabuildCloudState): Promise<{ co
   let totalSaved = 0;
 
   const saveBatch = async (collName: string, items: any[]) => {
+    if (!items || !items.length) return;
     for (const item of items) {
       if (item && item.id) {
         const sanitizedItem = sanitizeForFirestore(item);

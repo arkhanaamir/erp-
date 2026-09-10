@@ -166,11 +166,12 @@
         "projectId": { "type": "string", "maxLength": 128 },
         "category": { "type": "string", "maxLength": 80 },
         "name": { "type": "string", "maxLength": 150 },
+        "itemName": { "type": "string", "maxLength": 150 },
         "specifications": { "type": "string", "maxLength": 300 },
         "selectedOption": { "type": "string", "maxLength": 150 },
         "status": { "type": "string", "maxLength": 50 }
       },
-      "required": ["id", "category", "name", "status"]
+      "required": ["id", "category", "status"]
     },
     "sitePhotoItem": {
       "title": "SitePhotoItem",
