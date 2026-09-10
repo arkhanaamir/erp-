@@ -128,15 +128,20 @@ const STORAGE_KEY = 'casabuild_erp_v3_state';
 // Normalization helpers to prevent undefined array crashes
 const normalizeProjects = (projs: Project[]): Project[] => {
   if (!Array.isArray(projs) || projs.length === 0) return INITIAL_PROJECTS;
-  return projs.map(p => ({
-    ...p,
-    milestones: Array.isArray(p.milestones) ? p.milestones : [],
-    drawings: Array.isArray(p.drawings) ? p.drawings : [],
-    boq: Array.isArray(p.boq) ? p.boq : [],
-    isDeleted: Boolean(p.isDeleted),
-    deletedAt: p.deletedAt,
-    deletedBy: p.deletedBy
-  }));
+  return projs.map(p => {
+    const item: Project = {
+      ...p,
+      milestones: Array.isArray(p.milestones) ? p.milestones : [],
+      drawings: Array.isArray(p.drawings) ? p.drawings : [],
+      boq: Array.isArray(p.boq) ? p.boq : [],
+      isDeleted: Boolean(p.isDeleted)
+    };
+    if (p.deletedAt) item.deletedAt = p.deletedAt;
+    else delete item.deletedAt;
+    if (p.deletedBy) item.deletedBy = p.deletedBy;
+    else delete item.deletedBy;
+    return item;
+  });
 };
 
 const normalizeDailyReports = (reports: DailySiteReport[]): DailySiteReport[] => {
@@ -153,14 +158,16 @@ const normalizeOwnerRules = (userList: UserProfile[]): UserProfile[] => {
   return userList.map(u => {
     const emailStr = (u.email || '').trim().toLowerCase();
     const isAamir = emailStr === 'ar.khanaamir@gmail.com';
-    const base = {
+    const base: UserProfile = {
       ...u,
       assignedProjects: Array.isArray(u.assignedProjects) ? u.assignedProjects : ['ALL'],
       permissions: Array.isArray(u.permissions) ? u.permissions : ALL_MASTER_PERMISSIONS,
-      isDeleted: isAamir ? false : Boolean(u.isDeleted),
-      deletedAt: isAamir ? undefined : u.deletedAt,
-      deletedBy: isAamir ? undefined : u.deletedBy
+      isDeleted: isAamir ? false : Boolean(u.isDeleted)
     };
+    if (!isAamir && u.deletedAt) base.deletedAt = u.deletedAt;
+    else delete base.deletedAt;
+    if (!isAamir && u.deletedBy) base.deletedBy = u.deletedBy;
+    else delete base.deletedBy;
     if (isAamir) {
       return {
         ...base,

@@ -141,7 +141,10 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isValidId(photoId)
         && incoming().projectId is string && incoming().projectId.size() <= 128
-        && incoming().photoUrl is string && incoming().photoUrl.size() <= 1000;
+        && (
+          (incoming().imageUrl is string && incoming().imageUrl.size() <= 1000) ||
+          (incoming().photoUrl is string && incoming().photoUrl.size() <= 1000)
+        );
       allow update: if isValidId(photoId);
       allow delete: if isValidId(photoId);
     }

@@ -39,12 +39,36 @@ export interface CasabuildCloudState {
 }
 
 /**
+ * Recursively strip undefined properties from an object or array.
+ * Firebase Firestore strictly rejects fields with `undefined` values.
+ */
+export function sanitizeForFirestore<T>(data: T): T {
+  if (data === null || data === undefined) {
+    return null as unknown as T;
+  }
+  if (Array.isArray(data)) {
+    return data.map(item => sanitizeForFirestore(item)) as unknown as T;
+  }
+  if (typeof data === 'object' && !(data instanceof Date)) {
+    const cleaned: Record<string, any> = {};
+    for (const [key, value] of Object.entries(data)) {
+      if (value !== undefined) {
+        cleaned[key] = sanitizeForFirestore(value);
+      }
+    }
+    return cleaned as T;
+  }
+  return data;
+}
+
+/**
  * Save a single document to Firebase Firestore cloud database
  */
 export async function writeDocumentToCloud(collectionName: string, id: string, data: any): Promise<void> {
   try {
     const docRef = doc(db, collectionName, id);
-    await setDoc(docRef, data);
+    const sanitizedData = sanitizeForFirestore(data);
+    await setDoc(docRef, sanitizedData);
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `${collectionName}/${id}`);
   }
@@ -71,7 +95,8 @@ export async function uploadAllToCloud(state: CasabuildCloudState): Promise<{ co
   const saveBatch = async (collName: string, items: any[]) => {
     for (const item of items) {
       if (item && item.id) {
-        await setDoc(doc(db, collName, item.id), item);
+        const sanitizedItem = sanitizeForFirestore(item);
+        await setDoc(doc(db, collName, item.id), sanitizedItem);
         totalSaved++;
       }
     }

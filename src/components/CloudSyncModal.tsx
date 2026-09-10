@@ -40,7 +40,8 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({ isOpen, onClose 
     workers,
     dailyReports,
     expenses,
-    vendors
+    vendors,
+    users
   } = useCasabuild();
 
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
@@ -270,7 +271,17 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({ isOpen, onClose 
               ) : (
                 <AlertCircle className="h-4 w-4 shrink-0" />
               )}
-              <span>{actionFeedback.message}</span>
+              <span className="break-all">
+                {(() => {
+                  const msg = actionFeedback.message;
+                  try {
+                    const parsed = JSON.parse(msg);
+                    return parsed.error || msg;
+                  } catch {
+                    return msg;
+                  }
+                })()}
+              </span>
             </div>
           )}
 
@@ -279,6 +290,7 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({ isOpen, onClose 
             <span className="text-[10px] uppercase font-bold text-zinc-400">Current Dataset Ready to Sync</span>
             <div className="flex flex-wrap gap-2 pt-1 text-[11px]">
               <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300"><strong>{projects?.length || 0}</strong> Projects</span>
+              <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300"><strong>{users?.length || 0}</strong> Staff & Accounts</span>
               <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300"><strong>{workers?.length || 0}</strong> Labour Profiles</span>
               <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300"><strong>{dailyReports?.length || 0}</strong> DSR Reports</span>
               <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300"><strong>{expenses?.length || 0}</strong> Expense Vouchers</span>
