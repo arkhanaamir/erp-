@@ -2,6 +2,7 @@ import React from 'react';
 import {
   ClipboardCheck,
   Users2,
+  Users,
   Boxes,
   Receipt,
   Sparkles,
@@ -72,6 +73,13 @@ export const QuickActionModal: React.FC<QuickActionModalProps> = ({
       desc: 'Set up turnkey villa or commercial fitout schedule',
       icon: FolderKanban,
       color: 'bg-zinc-800 text-zinc-300 border-zinc-700'
+    },
+    {
+      id: 'employees',
+      title: 'Add & Manage Employees / Accounts',
+      desc: 'Create employee login credentials, assign system roles & projects',
+      icon: Users,
+      color: 'bg-amber-500/10 text-amber-400 border-amber-500/30'
     }
   ];
 

@@ -5,6 +5,7 @@ import {
   FolderKanban,
   ClipboardCheck,
   Users2,
+  Users,
   Boxes,
   Receipt,
   FileSpreadsheet,
@@ -30,12 +31,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
   mobileOpen,
   setMobileOpen,
 }) => {
-  const { currentRole, materials, dailyReports, isOwner } = useCasabuild();
+  const { currentRole, materials, dailyReports, isOwner, users } = useCasabuild();
 
   const lowStockCount = (materials || []).filter(m => m?.status === 'Low Stock' || m?.status === 'Critical').length;
+  const activeStaffCount = (users || []).filter(u => !u?.isDeleted).length;
 
   const navItems = [
     { id: 'dashboard', label: 'Command Center', icon: LayoutDashboard, badge: null, roles: ['owner', 'architect', 'supervisor', 'accountant', 'contractor'] },
+    { id: 'employees', label: 'Employees & Accounts', icon: Users, badge: `${activeStaffCount} Staff`, roles: ['owner', 'architect', 'supervisor', 'accountant'] },
     { id: 'projects', label: 'Projects & Milestones', icon: FolderKanban, badge: '5 Active', roles: ['owner', 'architect', 'supervisor', 'accountant'] },
     { id: 'daily-reports', label: 'Daily Site Reports (DSR)', icon: ClipboardCheck, badge: 'Daily', roles: ['owner', 'architect', 'supervisor', 'contractor'] },
     { id: 'labour', label: 'Labour & Attendance', icon: Users2, badge: '24 Today', roles: ['owner', 'supervisor', 'accountant', 'contractor'] },

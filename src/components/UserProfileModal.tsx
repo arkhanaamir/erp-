@@ -35,6 +35,7 @@ import {
   Pencil
 } from 'lucide-react';
 import { EmployeeEditModal } from './EmployeeEditModal';
+import { CreateEmployeeModal } from './CreateEmployeeModal';
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -86,6 +87,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
   // Comprehensive Employee Edit Modal state
   const [selectedEmployeeForEdit, setSelectedEmployeeForEdit] = useState<UserProfile | null>(null);
   const [showEmployeeEditModal, setShowEmployeeEditModal] = useState(false);
+  const [showCreateEmployeeModal, setShowCreateEmployeeModal] = useState(false);
 
   const isOwner = currentUser?.role === 'owner' || currentUser?.email.trim().toLowerCase() === 'ar.khanaamir@gmail.com';
 
@@ -591,13 +593,13 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
 
                   <button
                     onClick={() => {
-                      setShowAddUserModal(true);
+                      setShowCreateEmployeeModal(true);
                       setEditingTargetUser(null);
                     }}
                     className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-amber-500 text-zinc-950 text-xs font-bold hover:bg-amber-400 transition"
                   >
                     <Plus className="h-3.5 w-3.5" />
-                    <span>Provision User</span>
+                    <span>Provision User & Account</span>
                   </button>
                 </div>
               </div>
@@ -998,6 +1000,12 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
           setShowEmployeeEditModal(false);
           setSelectedEmployeeForEdit(null);
         }}
+      />
+
+      {/* Create Employee & Account Modal */}
+      <CreateEmployeeModal
+        isOpen={showCreateEmployeeModal}
+        onClose={() => setShowCreateEmployeeModal(false)}
       />
     </div>
   );

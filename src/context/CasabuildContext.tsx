@@ -50,7 +50,7 @@ interface CasabuildContextType {
   registerUser: (newUser: Omit<UserProfile, 'id'>) => { success: boolean; error?: string };
   logout: () => void;
   updateUserProfile: (id: string, updates: Partial<UserProfile>) => void;
-  addUser: (u: Omit<UserProfile, 'id'>) => void;
+  addUser: (u: Omit<UserProfile, 'id'>) => { success: boolean; error?: string };
   deleteUser: (id: string) => void;
   softDeleteUser: (id: string) => void;
   restoreUser: (id: string) => void;
@@ -727,7 +727,13 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
     }
 
-    setUsers(prev => prev.map(u => (u.id === id ? { ...u, ...safeUpdates } : u)));
+    setUsers(prev => {
+      const next = prev.map(u => (u.id === id ? { ...u, ...safeUpdates } : u));
+      const updated = next.find(u => u.id === id);
+      if (updated) writeDocumentToCloud('users', id, updated);
+      return next;
+    });
+
     if (currentUser && currentUser.id === id) {
       const updated = { ...currentUser, ...safeUpdates };
       setCurrentUser(updated);
@@ -742,21 +748,105 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (target && target.email.trim().toLowerCase() === 'ar.khanaamir@gmail.com') {
       return; // Cannot disable the Managing Owner
     }
-    setUsers(prev => prev.map(u => {
-      if (u.id === id) {
-        const nextDisabled = !u.disabled;
-        return {
-          ...u,
-          disabled: nextDisabled,
-          status: nextDisabled ? 'Disabled' : 'Active'
-        };
-      }
-      return u;
-    }));
+    setUsers(prev => {
+      const next = prev.map(u => {
+        if (u.id === id) {
+          const nextDisabled = !u.disabled;
+          const nextStatus: 'Disabled' | 'Active' = nextDisabled ? 'Disabled' : 'Active';
+          return {
+            ...u,
+            disabled: nextDisabled,
+            status: nextStatus
+          };
+        }
+        return u;
+      });
+      const updated = next.find(u => u.id === id);
+      if (updated) writeDocumentToCloud('users', id, updated);
+      return next;
+    });
   };
 
-  const addUser = (u: Omit<UserProfile, 'id'>) => {
-    registerUser(u);
+  const addUser = (newUser: Omit<UserProfile, 'id'>): { success: boolean; error?: string } => {
+    const cleanEmail = (newUser.email || '').trim().toLowerCase();
+    if (!cleanEmail) {
+      return { success: false, error: 'Email address is required.' };
+    }
+    const existing = users.find(u => (u.email || '').trim().toLowerCase() === cleanEmail);
+    if (existing) {
+      return { success: false, error: `An employee profile with email "${newUser.email}" already exists.` };
+    }
+
+    // Only Ar. Aamir Khan can hold owner role
+    const assignedRole: UserRole = (cleanEmail === 'ar.khanaamir@gmail.com') 
+      ? 'owner' 
+      : (newUser.role === 'owner' ? 'architect' : newUser.role);
+
+    const defaultPermissionsMap: Record<UserRole, string[]> = {
+      owner: [
+        'Full Administrative & Master ERP Access',
+        'Contract Approvals & Financial Authorizations',
+        'Vendor Disbursements & Payment Approvals',
+        'User Provisioning & Role Governance',
+        'Auditing & Statutory Compliance'
+      ],
+      architect: [
+        'Architectural & Interior Drawings Management',
+        'BOQ & Construction Cost Estimation',
+        'Interior Selection & Finish Specifications',
+        'Client Design Reviews & Presentations',
+        'Site Photo Journal & Quality Inspection',
+        'Executive Progress Reporting'
+      ],
+      supervisor: [
+        'Daily Site Reports (DSR) Logging',
+        'Workforce Muster Roll & Biometric Attendance',
+        'Material Inward Gate Entry & Consumption Logs',
+        'Site Progress Photo Documentation',
+        'Safety & Quality Checklists'
+      ],
+      accountant: [
+        'Vendor Ledger & Outstanding Aging',
+        'Worker Wage & Advance Settlement',
+        'NEFT, RTGS & UPI Disbursements',
+        'GST Invoice Audit & Input Tax Credit',
+        'Project Budget Overrun Tracking'
+      ],
+      contractor: [
+        'Assigned Workforce Attendance Verification',
+        'Daily Structural Concrete & Brickwork Logs',
+        'Subcontractor Task Completion Updates',
+        'Material Indent Submission'
+      ],
+      client: [
+        'View Real-Time Project Milestone Progress',
+        'Inspect HD Site Photo Timeline & Video Feeds',
+        'Approve / Request Revisions on Interior Selections',
+        'Download Verified Payment Receipts & Milestone Certificates'
+      ]
+    };
+
+    const userToSave: UserProfile = {
+      ...newUser,
+      role: assignedRole,
+      id: `usr-${Date.now()}`,
+      email: newUser.email.trim(),
+      permissions: newUser.permissions && newUser.permissions.length > 0 
+        ? newUser.permissions 
+        : defaultPermissionsMap[assignedRole] || ['Standard Workspace Access'],
+      assignedProjects: newUser.assignedProjects && newUser.assignedProjects.length > 0
+        ? newUser.assignedProjects
+        : ['ALL'],
+      lastLogin: 'Never',
+      disabled: Boolean(newUser.disabled),
+      status: newUser.disabled ? 'Disabled' : 'Active',
+      companyOrAffiliation: newUser.companyOrAffiliation || 'The Casabuild Group',
+      avatar: newUser.avatar || `https://images.unsplash.com/photo-${1534528741775 + Math.floor(Math.random() * 500)}?w=150&auto=format&fit=crop&q=80`
+    };
+
+    setUsers(prev => [userToSave, ...prev]);
+    writeDocumentToCloud('users', userToSave.id, userToSave);
+    return { success: true };
   };
 
   const softDeleteUser = (id: string) => {

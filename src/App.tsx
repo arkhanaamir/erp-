@@ -19,6 +19,7 @@ import { SitePhotosView } from './components/SitePhotosView';
 import { InteriorSelectionView } from './components/InteriorSelectionView';
 import { ClientPortalView } from './components/ClientPortalView';
 import { ReportsCenterView } from './components/ReportsCenterView';
+import { EmployeesManagementView } from './components/EmployeesManagementView';
 import { QuickActionModal } from './components/QuickActionModal';
 import { LoginView } from './components/LoginView';
 import {
@@ -93,6 +94,7 @@ function CasabuildMainApp() {
               onOpenQuickAction={() => setQuickActionOpen(true)}
             />
           )}
+          {currentTab === 'employees' && <EmployeesManagementView />}
           {currentTab === 'projects' && <ProjectManagementView />}
           {currentTab === 'daily-reports' && <DailySiteReportView />}
           {currentTab === 'labour' && <LabourAttendanceView />}

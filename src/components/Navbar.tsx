@@ -21,6 +21,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   User,
+  Users,
   LogOut,
   SlidersHorizontal,
   Cloud,
@@ -53,6 +54,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenQuickAction, onNavigateToT
     firebaseUser,
     isOwner,
     recentlyDeletedCount,
+    users,
   } = useCasabuild();
 
   const [showUserDropdown, setShowUserDropdown] = useState(false);
@@ -65,6 +67,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenQuickAction, onNavigateToT
   const [showNotifications, setShowNotifications] = useState(false);
 
   const lowStockCount = (materials || []).filter(m => m?.status === 'Low Stock' || m?.status === 'Critical').length;
+  const activeEmployeesCount = (users || []).filter(u => !u?.isDeleted).length;
 
   const roleConfigs: Record<UserRole, { label: string; icon: any; color: string; desc: string }> = {
     owner: {
@@ -219,6 +222,22 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenQuickAction, onNavigateToT
             </button>
           )}
 
+          {/* Employees & Accounts Shortcut */}
+          {currentRole !== 'client' && (
+            <button
+              id="navbar-employees-btn"
+              onClick={() => onNavigateToTab('employees')}
+              className="flex items-center space-x-1.5 rounded-xl border border-zinc-800 bg-zinc-900/80 hover:bg-zinc-800 hover:border-amber-500/40 px-2.5 py-1.5 text-xs font-medium text-zinc-300 hover:text-amber-300 transition"
+              title="Manage Company Employees, Accounts, Passwords & Permissions"
+            >
+              <Users className="h-3.5 w-3.5 text-amber-400" />
+              <span className="hidden md:inline text-[11px]">Employees</span>
+              <span className="inline-flex items-center justify-center rounded-full bg-zinc-800 px-1.5 py-0.2 text-[10px] font-bold text-amber-400/90 border border-zinc-700">
+                {activeEmployeesCount}
+              </span>
+            </button>
+          )}
+
           {/* Recently Deleted Recycle Bin Button */}
           <button
             id="navbar-recently-deleted-btn"
@@ -351,6 +370,22 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenQuickAction, onNavigateToT
                   >
                     <User className="h-4 w-4 text-amber-400" />
                     <span>View Profile & Role Permissions Matrix</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowUserDropdown(false);
+                      onNavigateToTab('employees');
+                    }}
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs text-zinc-200 hover:bg-zinc-800/80 hover:text-amber-300 transition"
+                  >
+                    <div className="flex items-center space-x-2.5">
+                      <Users className="h-4 w-4 text-amber-400" />
+                      <span>Company Employees & Accounts</span>
+                    </div>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      {activeEmployeesCount}
+                    </span>
                   </button>
 
                   <button
