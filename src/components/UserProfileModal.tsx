@@ -32,10 +32,12 @@ import {
   ShieldAlert,
   FileSpreadsheet,
   Check,
-  Pencil
+  Pencil,
+  Database
 } from 'lucide-react';
 import { EmployeeEditModal } from './EmployeeEditModal';
 import { CreateEmployeeModal } from './CreateEmployeeModal';
+import { CloudDataPointModal } from './CloudDataPointModal';
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -88,6 +90,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
   const [selectedEmployeeForEdit, setSelectedEmployeeForEdit] = useState<UserProfile | null>(null);
   const [showEmployeeEditModal, setShowEmployeeEditModal] = useState(false);
   const [showCreateEmployeeModal, setShowCreateEmployeeModal] = useState(false);
+  const [showDataPointModal, setShowDataPointModal] = useState(false);
 
   const isOwner = currentUser?.role === 'owner' || currentUser?.email.trim().toLowerCase() === 'ar.khanaamir@gmail.com';
 
@@ -445,6 +448,37 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
                   <p className="text-xs font-medium text-zinc-300">
                     {currentUser.lastLogin || 'Active session now'}
                   </p>
+                </div>
+              </div>
+
+              {/* Cloud Storage Destination Data Point Card */}
+              <div className="rounded-xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-zinc-900/60 to-zinc-900/80 p-4 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="h-8 w-8 rounded-lg bg-amber-500/20 text-amber-300 flex items-center justify-center border border-amber-500/30">
+                      <Database className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">Cloud Storage Data Point</span>
+                        <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 text-[9px] font-bold border border-emerald-500/30">Active Firestore</span>
+                      </div>
+                      <p className="text-xs font-semibold text-zinc-100 mt-0.5">
+                        Repository Destination: <strong className="text-amber-300 font-mono">ar.khanaamir@gmail.com</strong>
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowDataPointModal(true)}
+                    className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold transition shadow-sm"
+                  >
+                    Check Storage Point
+                  </button>
+                </div>
+                <div className="text-[11px] text-zinc-400 pl-11 space-y-0.5">
+                  <p>Database: <code className="font-mono text-zinc-300">ai-studio-thecasabuild31-b35684a5-ec70-4bd0-848b-bf70cbb937b5</code></p>
+                  <p>Google Cloud Project: <span className="font-mono text-zinc-300">basic-craft-ncbh2</span> (12 ERP Collections synced)</p>
                 </div>
               </div>
 
@@ -1006,6 +1040,12 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
       <CreateEmployeeModal
         isOpen={showCreateEmployeeModal}
         onClose={() => setShowCreateEmployeeModal(false)}
+      />
+
+      {/* Cloud Data Point Modal */}
+      <CloudDataPointModal
+        isOpen={showDataPointModal}
+        onClose={() => setShowDataPointModal(false)}
       />
     </div>
   );

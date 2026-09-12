@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useCasabuild } from '../context/CasabuildContext';
 import { DomainAuthNotice } from './DomainAuthNotice';
+import { CloudDataPointModal } from './CloudDataPointModal';
 import {
   Cloud,
   CloudCheck,
@@ -46,6 +47,7 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({ isOpen, onClose 
 
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [actionFeedback, setActionFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [showDataPointModal, setShowDataPointModal] = useState(false);
 
   if (!isOpen) return null;
 
@@ -195,7 +197,7 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({ isOpen, onClose 
                   {firebaseUser ? (
                     <span>Connected: <strong className="text-amber-300 font-mono">{firebaseUser.email}</strong></span>
                   ) : (
-                    <span className="text-zinc-400">Google Account not yet linked</span>
+                    <span>Master Account: <strong className="text-amber-300 font-mono">ar.khanaamir@gmail.com</strong></span>
                   )}
                 </span>
               </div>
@@ -236,6 +238,33 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({ isOpen, onClose 
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Cloud Storage Destination Data Point */}
+          <div className="rounded-xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-zinc-900/60 to-zinc-900/80 p-3.5 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div className="h-7 w-7 rounded-lg bg-amber-500/20 text-amber-300 flex items-center justify-center">
+                  <Database className="h-3.5 w-3.5" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">Data Storage Point</span>
+                  <p className="text-xs font-semibold text-zinc-200">
+                    Saved to: <span className="text-amber-300 font-mono">ar.khanaamir@gmail.com</span>
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowDataPointModal(true)}
+                className="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold transition shadow-sm"
+              >
+                <span>Check Data Point</span>
+                <ArrowRight className="h-3 w-3" />
+              </button>
+            </div>
+            <p className="text-[11px] text-zinc-400 pl-9">
+              Database: <code className="font-mono text-zinc-300">ai-studio-thecasabuild31-b35684a5...</code> • Google Cloud Firestore (12 ERP Collections)
+            </p>
           </div>
 
           {/* Domain Authorization Guidance Banner */}
@@ -330,7 +359,15 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({ isOpen, onClose 
 
         {/* Footer */}
         <div className="px-5 py-3 border-t border-zinc-800/80 bg-zinc-900/40 flex items-center justify-between text-[11px] text-zinc-500">
-          <span className="font-mono truncate">Database: basic-craft-ncbh2</span>
+          <div className="flex items-center space-x-2">
+            <span className="font-mono text-zinc-400">Database: ai-studio-thecasabuild31...</span>
+            <button
+              onClick={() => setShowDataPointModal(true)}
+              className="text-amber-400 hover:text-amber-300 font-semibold underline underline-offset-2"
+            >
+              Audit Data Point
+            </button>
+          </div>
           <button
             onClick={onClose}
             className="text-zinc-400 hover:text-zinc-200 transition"
@@ -339,6 +376,12 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({ isOpen, onClose 
           </button>
         </div>
       </div>
+
+      {/* Cloud Storage Destination Data Point Modal */}
+      <CloudDataPointModal
+        isOpen={showDataPointModal}
+        onClose={() => setShowDataPointModal(false)}
+      />
     </div>
   );
 };

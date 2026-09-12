@@ -27,12 +27,14 @@ import {
   RefreshCw,
   Lock,
   Copy,
-  Check
+  Check,
+  Database
 } from 'lucide-react';
 import { exportToExcel } from '../utils/excelExport';
 import { CreateEmployeeModal } from './CreateEmployeeModal';
 import { EmployeeEditModal } from './EmployeeEditModal';
 import { RecentlyDeletedModal } from './RecentlyDeletedModal';
+import { CloudDataPointModal } from './CloudDataPointModal';
 
 export const EmployeesManagementView: React.FC = () => {
   const {
@@ -56,6 +58,7 @@ export const EmployeesManagementView: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editInitialTab, setEditInitialTab] = useState<'profile' | 'projects' | 'security' | 'danger'>('profile');
   const [showRecycleBinModal, setShowRecycleBinModal] = useState(false);
+  const [showDataPointModal, setShowDataPointModal] = useState(false);
 
   // Password visibility map (for quick credential inspection)
   const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
@@ -226,6 +229,37 @@ export const EmployeesManagementView: React.FC = () => {
             )}
           </button>
         </div>
+      </div>
+
+      {/* Cloud Data Point Storage Diagnostic Strip */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl border border-amber-500/25 bg-amber-500/5 backdrop-blur-sm">
+        <div className="flex items-center space-x-3">
+          <div className="h-9 w-9 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center shrink-0 border border-amber-500/30">
+            <Database className="h-4 w-4" />
+          </div>
+          <div>
+            <div className="flex items-center space-x-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">Cloud Storage Data Point</span>
+              <span className="inline-flex items-center space-x-1 px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Active Google Cloud Firestore</span>
+              </span>
+            </div>
+            <p className="text-xs text-zinc-200 mt-0.5">
+              Data Repository: <strong className="text-amber-300 font-mono">ar.khanaamir@gmail.com</strong>
+              <span className="text-zinc-500 mx-2">•</span>
+              <span className="text-zinc-400 font-mono text-[11px]">ai-studio-thecasabuild31-b35684a5...</span>
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setShowDataPointModal(true)}
+          className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 text-xs font-semibold transition shrink-0 self-start sm:self-auto"
+        >
+          <Database className="h-3.5 w-3.5 text-amber-400" />
+          <span>Check Data Point</span>
+        </button>
       </div>
 
       {/* Summary KPI Cards */}
@@ -551,6 +585,12 @@ export const EmployeesManagementView: React.FC = () => {
         isOpen={showRecycleBinModal}
         onClose={() => setShowRecycleBinModal(false)}
         initialFilter="users"
+      />
+
+      {/* Modal: Cloud Data Point Inspector */}
+      <CloudDataPointModal
+        isOpen={showDataPointModal}
+        onClose={() => setShowDataPointModal(false)}
       />
     </div>
   );

@@ -3,6 +3,7 @@ import { useCasabuild } from '../context/CasabuildContext';
 import { UserRole, Project } from '../types';
 import { UserProfileModal } from './UserProfileModal';
 import { CloudSyncModal } from './CloudSyncModal';
+import { CloudDataPointModal } from './CloudDataPointModal';
 import {
   Building2,
   ChevronDown,
@@ -29,6 +30,7 @@ import {
   RefreshCw,
   Trash2,
   Pencil,
+  Database
 } from 'lucide-react';
 import { RecentlyDeletedModal } from './RecentlyDeletedModal';
 import { ProjectEditModal } from './ProjectEditModal';
@@ -60,6 +62,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenQuickAction, onNavigateToT
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showSyncModal, setShowSyncModal] = useState(false);
+  const [showDataPointModal, setShowDataPointModal] = useState(false);
   const [showRecentlyDeletedModal, setShowRecentlyDeletedModal] = useState(false);
   const [showProjectDropdown, setShowProjectDropdown] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
@@ -405,6 +408,23 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenQuickAction, onNavigateToT
                       </span>
                     )}
                   </button>
+
+                  {/* Cloud Data Point Storage Diagnostic */}
+                  <button
+                    onClick={() => {
+                      setShowUserDropdown(false);
+                      setShowDataPointModal(true);
+                    }}
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs text-zinc-200 hover:bg-zinc-800/80 hover:text-amber-300 transition"
+                  >
+                    <div className="flex items-center space-x-2.5">
+                      <Database className="h-4 w-4 text-amber-400" />
+                      <span>Cloud Data Point (ar.khanaamir@gmail.com)</span>
+                    </div>
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      Audit
+                    </span>
+                  </button>
                 </div>
 
                 {/* Role Switching: Allowed for Owner with Master Access across all roles */}
@@ -567,6 +587,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenQuickAction, onNavigateToT
           setShowEditProjectModal(false);
           setEditingProject(null);
         }}
+      />
+
+      {/* Cloud Data Point Inspector Modal */}
+      <CloudDataPointModal
+        isOpen={showDataPointModal}
+        onClose={() => setShowDataPointModal(false)}
+        onOpenSyncModal={() => setShowSyncModal(true)}
       />
     </header>
   );
