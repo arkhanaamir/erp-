@@ -15,7 +15,6 @@ import {
   Eye,
   Plus,
   Bell,
-  RotateCcw,
   Sparkles,
   ExternalLink,
   MapPin,
@@ -51,7 +50,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenQuickAction, onNavigateToT
     setActiveProjectId,
     activeProject,
     materials,
-    resetToDefaults,
     cloudSyncStatus,
     firebaseUser,
     isOwner,
@@ -544,20 +542,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenQuickAction, onNavigateToT
               </div>
             )}
           </div>
-
-          {/* Reset Demo Data Button */}
-          <button
-            id="navbar-reset-demo-btn"
-            onClick={() => {
-              if (window.confirm('Reset all Casabuild ERP data to factory blueprint state?')) {
-                resetToDefaults();
-              }
-            }}
-            className="hidden sm:flex rounded-xl border border-zinc-800 bg-zinc-900/80 hover:bg-zinc-800 p-2 text-zinc-400 hover:text-zinc-200 transition"
-            title="Reset to Blueprint Defaults"
-          >
-            <RotateCcw className="h-4 w-4" />
-          </button>
         </div>
       </div>
 
