@@ -24,7 +24,9 @@ import {
   Pencil,
   FolderKanban,
   ShieldAlert,
-  UserX
+  UserX,
+  EyeOff,
+  Sparkles
 } from 'lucide-react';
 
 interface EmployeeEditModalProps {
@@ -55,6 +57,7 @@ export const EmployeeEditModal: React.FC<EmployeeEditModalProps> = ({
   const [licenseNumber, setLicenseNumber] = useState('');
   const [avatar, setAvatar] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [disabled, setDisabled] = useState(false);
   const [assignAllProjects, setAssignAllProjects] = useState(true);
   const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
@@ -72,7 +75,8 @@ export const EmployeeEditModal: React.FC<EmployeeEditModalProps> = ({
       setCompanyOrAffiliation(employee.companyOrAffiliation || 'The Casabuild Group');
       setLicenseNumber(employee.licenseNumber || '');
       setAvatar(employee.avatar || '');
-      setPassword(employee.password || '');
+      setPassword(''); // Keep empty so existing credentials remain hidden
+      setShowPassword(false);
       setDisabled(Boolean(employee.disabled || employee.status === 'Disabled'));
 
       const isAll = !employee.assignedProjects || employee.assignedProjects.includes('ALL');
@@ -84,6 +88,17 @@ export const EmployeeEditModal: React.FC<EmployeeEditModalProps> = ({
       setSaveSuccess(false);
     }
   }, [employee, isOpen, initialTab, projects]);
+
+  const generateRandomPassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%';
+    let res = 'Casa@';
+    for (let i = 0; i < 4; i++) {
+      res += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    res += Math.floor(10 + Math.random() * 90);
+    setPassword(res);
+    setShowPassword(true);
+  };
 
   if (!isOpen || !employee) return null;
 
@@ -152,6 +167,11 @@ export const EmployeeEditModal: React.FC<EmployeeEditModalProps> = ({
     let safeRole = role;
     if (safeRole === 'owner' && email.trim().toLowerCase() !== 'ar.khanaamir@gmail.com') {
       safeRole = 'architect';
+    }
+
+    if (password.trim() && password.trim().length < 4) {
+      alert('New password must contain at least 4 characters.');
+      return;
     }
 
     const assigned = assignAllProjects ? ['ALL'] : selectedProjects;
@@ -548,23 +568,53 @@ export const EmployeeEditModal: React.FC<EmployeeEditModalProps> = ({
           {activeTab === 'security' && (
             <div className="space-y-4">
               <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 space-y-3">
-                <h4 className="text-xs font-bold text-zinc-200 flex items-center space-x-2">
-                  <KeyRound className="h-4 w-4 text-amber-400" />
-                  <span>Authentication Credentials</span>
-                </h4>
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-zinc-200 flex items-center space-x-2">
+                    <KeyRound className="h-4 w-4 text-amber-400" />
+                    <span>Authentication Credentials</span>
+                  </h4>
+                  <div className="flex items-center space-x-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-[10px] font-semibold text-emerald-400">
+                    <Lock className="h-3 w-3" />
+                    <span>Protected (••••••••)</span>
+                  </div>
+                </div>
+
                 <div>
-                  <label className="block text-xs font-medium text-zinc-400 mb-1">
-                    Login Password
-                  </label>
-                  <input
-                    type="text"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    placeholder="Enter new password or leave unchanged"
-                    className="w-full rounded-xl border border-zinc-700 bg-zinc-900/90 px-3 py-2 text-xs text-zinc-100 font-mono focus:border-amber-500 focus:outline-none"
-                  />
-                  <p className="text-[10px] text-zinc-500 mt-1">
-                    Used for password authentication and instant sign-in on the login portal.
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-medium text-zinc-300">
+                      Change Login Password
+                    </label>
+                    <button
+                      type="button"
+                      onClick={generateRandomPassword}
+                      className="text-[11px] text-amber-400 hover:text-amber-300 hover:underline flex items-center space-x-1"
+                    >
+                      <Sparkles className="h-3 w-3" />
+                      <span>Generate Secure Password</span>
+                    </button>
+                  </div>
+
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      placeholder="Leave blank to keep existing password, or enter new (min 4 chars)"
+                      autoComplete="new-password"
+                      className="w-full rounded-xl border border-zinc-700 bg-zinc-900/90 pl-9 pr-10 py-2 text-xs text-zinc-100 font-mono placeholder-zinc-500 focus:border-amber-500 focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-2.5 text-zinc-500 hover:text-zinc-300"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+
+                  <p className="text-[11px] text-zinc-500 mt-1.5">
+                    For privacy, existing passwords are never revealed. When you enter a new password and save, credentials will be synced to Google Cloud Firestore immediately.
                   </p>
                 </div>
               </div>

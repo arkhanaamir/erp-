@@ -51,6 +51,8 @@ interface CasabuildContextType {
   registerUser: (newUser: Omit<UserProfile, 'id'>) => { success: boolean; error?: string };
   logout: () => void;
   updateUserProfile: (id: string, updates: Partial<UserProfile>) => void;
+  changeUserPassword: (id: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
+  bulkUpdateEmployeePasswords: (updates: { id: string; password: string }[]) => Promise<{ success: boolean; updatedCount: number }>;
   addUser: (u: Omit<UserProfile, 'id'>) => { success: boolean; error?: string };
   deleteUser: (id: string) => void;
   softDeleteUser: (id: string) => void;
@@ -203,17 +205,19 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   });
 
-  // Current authenticated user profile - defaults directly to Ar. Aamir Khan (Master Owner)
+  // Current authenticated user profile - requires explicit employee login
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
     try {
       const saved = localStorage.getItem(`${STORAGE_KEY}_currentUser`);
       if (saved) {
         const u: UserProfile = JSON.parse(saved);
-        return normalizeOwnerRules([u])[0];
+        if (u && u.email) {
+          return normalizeOwnerRules([u])[0];
+        }
       }
     } catch {}
-    // Default to Ar. Aamir Khan (Managing Owner in Every Role)
-    return INITIAL_USERS[0];
+    // Do not auto-login; each employee logs in separately
+    return null;
   });
 
   const [currentRole, setRoleState] = useState<UserRole>(() => {
@@ -225,7 +229,7 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return normalized.role;
       }
     } catch {}
-    return 'owner';
+    return 'architect';
   });
 
   const isOwner = currentUser?.role === 'owner' || currentUser?.email.trim().toLowerCase() === 'ar.khanaamir@gmail.com';
@@ -377,7 +381,9 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   useEffect(() => {
     if (currentUser) {
-      localStorage.setItem(`${STORAGE_KEY}_currentUser`, JSON.stringify(currentUser));
+      // Security: never store employee password in session storage or localStorage
+      const { password: _pw, ...safeUser } = currentUser;
+      localStorage.setItem(`${STORAGE_KEY}_currentUser`, JSON.stringify(safeUser));
       setRoleState(currentUser.role);
     } else {
       localStorage.removeItem(`${STORAGE_KEY}_currentUser`);
@@ -682,10 +688,17 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       };
     }
 
+    if (!password || password.trim().length === 0) {
+      return {
+        success: false,
+        error: 'Please enter your account password to sign in.'
+      };
+    }
+
     if (user.password && user.password !== password) {
       return {
         success: false,
-        error: 'Incorrect password. Please verify your credentials or select a predefined demo account.'
+        error: 'Incorrect password. Each employee has their own private password. Please enter the correct password.'
       };
     }
 
@@ -786,7 +799,69 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const logout = () => {
     setCurrentUser(null);
+    setRoleState('architect');
     localStorage.removeItem(`${STORAGE_KEY}_currentUser`);
+    try {
+      sessionStorage.clear();
+    } catch {}
+  };
+
+  const changeUserPassword = async (id: string, newPassword: string): Promise<{ success: boolean; error?: string }> => {
+    const cleanPass = (newPassword || '').trim();
+    if (!cleanPass || cleanPass.length < 4) {
+      return { success: false, error: 'Password must be at least 4 characters.' };
+    }
+
+    let updatedRecord: UserProfile | undefined;
+    setUsers(prev => {
+      const next = prev.map(u => {
+        if (u.id === id) {
+          updatedRecord = { ...u, password: cleanPass };
+          return updatedRecord;
+        }
+        return u;
+      });
+      return next;
+    });
+
+    if (updatedRecord) {
+      writeDocumentToCloud('users', id, updatedRecord);
+    }
+
+    if (currentUser && currentUser.id === id) {
+      setCurrentUser(prev => prev ? { ...prev, password: cleanPass } : null);
+    }
+
+    await flushPendingWrites();
+    setCloudSyncStatus('synced');
+    setLastCloudSyncTime(new Date().toLocaleTimeString());
+
+    return { success: true };
+  };
+
+  const bulkUpdateEmployeePasswords = async (updates: { id: string; password: string }[]): Promise<{ success: boolean; updatedCount: number }> => {
+    const updateMap = new Map(updates.map(u => [u.id, (u.password || '').trim()]));
+    let count = 0;
+
+    setUsers(prev => {
+      const next = prev.map(u => {
+        const newPass = updateMap.get(u.id);
+        if (newPass && newPass.length >= 4) {
+          count++;
+          const updated = { ...u, password: newPass };
+          writeDocumentToCloud('users', u.id, updated);
+          return updated;
+        }
+        return u;
+      });
+      return next;
+    });
+
+    await flushPendingWrites();
+    setCloudSyncStatus('synced');
+    setLastCloudSyncTime(new Date().toLocaleTimeString());
+
+    return { success: true, updatedCount: count };
   };
 
   const updateUserProfile = (id: string, updates: Partial<UserProfile>) => {
@@ -1710,6 +1785,8 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         registerUser,
         logout,
         updateUserProfile,
+        changeUserPassword,
+        bulkUpdateEmployeePasswords,
         addUser,
         deleteUser,
         softDeleteUser,

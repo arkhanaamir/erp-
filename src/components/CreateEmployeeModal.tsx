@@ -38,7 +38,7 @@ export const CreateEmployeeModal: React.FC<CreateEmployeeModalProps> = ({
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('Casabuild@2025');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<UserRole>('supervisor');
   const [designation, setDesignation] = useState('Site Supervisor & Quality Lead');
@@ -101,6 +101,7 @@ export const CreateEmployeeModal: React.FC<CreateEmployeeModalProps> = ({
     }
     res += Math.floor(10 + Math.random() * 90);
     setPassword(res);
+    setShowPassword(true);
   };
 
   const handleRoleChange = (newRole: UserRole) => {
@@ -322,7 +323,8 @@ export const CreateEmployeeModal: React.FC<CreateEmployeeModalProps> = ({
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-xl border border-zinc-800 bg-zinc-900 pl-3 pr-10 py-2 text-xs font-mono text-zinc-100 focus:border-amber-500 focus:outline-none"
+                placeholder="Enter unique password (min 4 characters)"
+                className="w-full rounded-xl border border-zinc-800 bg-zinc-900 pl-3 pr-10 py-2 text-xs font-mono text-zinc-100 placeholder-zinc-500 focus:border-amber-500 focus:outline-none"
               />
               <button
                 type="button"

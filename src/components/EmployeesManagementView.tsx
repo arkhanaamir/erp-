@@ -35,6 +35,7 @@ import { CreateEmployeeModal } from './CreateEmployeeModal';
 import { EmployeeEditModal } from './EmployeeEditModal';
 import { RecentlyDeletedModal } from './RecentlyDeletedModal';
 import { CloudDataPointModal } from './CloudDataPointModal';
+import { BulkPasswordModal } from './BulkPasswordModal';
 
 export const EmployeesManagementView: React.FC = () => {
   const {
@@ -59,14 +60,10 @@ export const EmployeesManagementView: React.FC = () => {
   const [editInitialTab, setEditInitialTab] = useState<'profile' | 'projects' | 'security' | 'danger'>('profile');
   const [showRecycleBinModal, setShowRecycleBinModal] = useState(false);
   const [showDataPointModal, setShowDataPointModal] = useState(false);
+  const [showBulkPasswordModal, setShowBulkPasswordModal] = useState(false);
+  const [passwordTargetUserId, setPasswordTargetUserId] = useState<string | null>(null);
 
-  // Password visibility map (for quick credential inspection)
-  const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
   const [copiedId, setCopiedId] = useState<string | null>(null);
-
-  const togglePasswordVisibility = (id: string) => {
-    setVisiblePasswords(prev => ({ ...prev, [id]: !prev[id] }));
-  };
 
   const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -204,6 +201,19 @@ export const EmployeesManagementView: React.FC = () => {
           >
             <UserPlus className="h-4 w-4 stroke-[2.5]" />
             <span>+ Add Employee & Account</span>
+          </button>
+
+          <button
+            id="employee-mgmt-change-passwords-btn"
+            onClick={() => {
+              setPasswordTargetUserId(null);
+              setShowBulkPasswordModal(true);
+            }}
+            className="flex items-center space-x-1.5 rounded-xl border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 px-3 py-2 text-xs font-semibold text-amber-300 transition active:scale-95 shadow-sm"
+            title="Batch change or regenerate passwords for all employees"
+          >
+            <KeyRound className="h-4 w-4 text-amber-400" />
+            <span>Change All Passwords</span>
           </button>
 
           <button
@@ -363,7 +373,6 @@ export const EmployeesManagementView: React.FC = () => {
           const isAamirOwner = employee.email.trim().toLowerCase() === 'ar.khanaamir@gmail.com';
           const isSelf = currentUser?.id === employee.id || currentUser?.email.trim().toLowerCase() === employee.email.trim().toLowerCase();
           const isDisabled = Boolean(employee.disabled || employee.status === 'Disabled');
-          const isPassVisible = Boolean(visiblePasswords[employee.id]);
 
           return (
             <div
@@ -449,32 +458,26 @@ export const EmployeesManagementView: React.FC = () => {
                     </button>
                   </div>
 
-                  {/* Password Inspection & Copy */}
-                  <div className="flex items-center justify-between text-zinc-300 border-t border-zinc-800/50 pt-2">
-                    <div className="flex items-center space-x-2 min-w-0">
-                      <KeyRound className="h-3.5 w-3.5 text-amber-500/80 shrink-0" />
-                      <span className="font-mono text-[11px] text-zinc-300">
-                        {isPassVisible ? (employee.password || 'Casabuild@2025') : '••••••••••••'}
+                  {/* Password Management & Privacy */}
+                  <div className="flex items-center justify-between text-zinc-400 border-t border-zinc-800/50 pt-2">
+                    <div className="flex items-center space-x-1.5 min-w-0">
+                      <Lock className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                      <span className="text-[11px] text-zinc-400">
+                        Password: <span className="font-mono text-zinc-500">••••••••</span> <span className="text-[10px] text-emerald-400/90 font-medium">(Hidden)</span>
                       </span>
                     </div>
-                    <div className="flex items-center space-x-1.5">
-                      <button
-                        type="button"
-                        onClick={() => togglePasswordVisibility(employee.id)}
-                        className="text-zinc-500 hover:text-zinc-300 p-0.5 transition"
-                        title={isPassVisible ? 'Hide password' : 'Show password'}
-                      >
-                        {isPassVisible ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => copyToClipboard(employee.password || 'Casabuild@2025', `pass-${employee.id}`)}
-                        className="text-zinc-500 hover:text-zinc-300 p-0.5 transition"
-                        title="Copy password"
-                      >
-                        {copiedId === `pass-${employee.id}` ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPasswordTargetUserId(employee.id);
+                        setShowBulkPasswordModal(true);
+                      }}
+                      className="inline-flex items-center space-x-1 text-[11px] text-amber-400 hover:text-amber-300 hover:underline transition font-medium"
+                      title="Change password for this employee"
+                    >
+                      <KeyRound className="h-3 w-3" />
+                      <span>Change Password</span>
+                    </button>
                   </div>
 
                   {/* Phone & License */}
@@ -591,6 +594,16 @@ export const EmployeesManagementView: React.FC = () => {
       <CloudDataPointModal
         isOpen={showDataPointModal}
         onClose={() => setShowDataPointModal(false)}
+      />
+
+      {/* Modal: Batch & Individual Employee Password Management */}
+      <BulkPasswordModal
+        isOpen={showBulkPasswordModal}
+        onClose={() => {
+          setShowBulkPasswordModal(false);
+          setPasswordTargetUserId(null);
+        }}
+        targetEmployeeId={passwordTargetUserId}
       />
     </div>
   );

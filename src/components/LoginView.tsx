@@ -40,10 +40,9 @@ export const LoginView: React.FC = () => {
   } = useCasabuild();
 
   const [mode, setMode] = useState<'login' | 'register'>('login');
-  const [email, setEmail] = useState('Ar.khanaamir@gmail.com');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -129,25 +128,15 @@ export const LoginView: React.FC = () => {
     }, 250);
   };
 
-  const autofillPredefinedUser = (user: UserProfile) => {
+  const handleSelectRosterUser = (user: UserProfile) => {
     setEmail(user.email);
-    setPassword(user.password || 'password123');
+    setPassword('');
     setErrorMsg(null);
-    setSuccessMsg(`Selected: ${user.name} (${roleMeta[user.role].label}). Click "Sign In" below or press Enter.`);
-  };
-
-  const handleDirectSignIn = (user: UserProfile, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setErrorMsg(null);
-    setSuccessMsg(null);
-    setSubmitting(true);
-    setTimeout(async () => {
-      const res = await login(user.email, user.password || 'password123');
-      if (!res.success) {
-        setErrorMsg(res.error || 'Authentication failed.');
-        setSubmitting(false);
-      }
-    }, 150);
+    setSuccessMsg(`Selected: ${user.name} (${roleMeta[user.role].label}). Please enter your account password to sign in.`);
+    const passInput = document.getElementById('login-password-input');
+    if (passInput) {
+      passInput.focus();
+    }
   };
 
   return (
@@ -192,16 +181,16 @@ export const LoginView: React.FC = () => {
                 <div className="flex items-center space-x-2">
                   <KeyRound className="h-4 w-4 text-amber-400" />
                   <h2 className="text-sm font-bold tracking-wide text-zinc-100 uppercase">
-                    Predefined System Profiles
+                    Authorized Team Roster
                   </h2>
                 </div>
                 <span className="text-[10px] bg-amber-500/10 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full font-medium">
-                  One-Click Fill
+                  Separate Logins
                 </span>
               </div>
 
               <p className="text-xs text-zinc-400 mt-2 mb-4 leading-relaxed">
-                Roles and security boundaries are strictly predefined per verified profile. Click any profile below to autofill their email and password:
+                Every employee logs in separately using their designated credentials. Click your profile below to select your account and enter your password:
               </p>
 
               <div className="space-y-2.5 max-h-[480px] overflow-y-auto pr-1">
@@ -214,7 +203,7 @@ export const LoginView: React.FC = () => {
                     <button
                       key={u.id}
                       type="button"
-                      onClick={() => autofillPredefinedUser(u)}
+                      onClick={() => handleSelectRosterUser(u)}
                       className={`w-full text-left p-3 rounded-xl border transition-all flex items-start space-x-3 group ${
                         isHighlighted
                           ? 'border-amber-500/60 bg-amber-500/10 shadow-lg shadow-amber-500/5 ring-1 ring-amber-500/30'
@@ -251,12 +240,12 @@ export const LoginView: React.FC = () => {
                           {u.email}
                         </p>
                         <div className="flex items-center justify-between mt-1.5 pt-1.5 border-t border-zinc-800/60">
-                          <span className="text-[10px] text-zinc-400">Password: <span className="font-mono text-zinc-400">••••••••</span></span>
-                          <span
-                            onClick={(e) => handleDirectSignIn(u, e)}
-                            className="inline-flex items-center space-x-1 px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-zinc-950 font-bold text-[10px] transition border border-amber-500/30"
-                          >
-                            <span>Sign In</span>
+                          <span className="text-[10px] text-zinc-400 flex items-center space-x-1">
+                            <Lock className="h-3 w-3 text-amber-500/80" />
+                            <span>Private Password Protected</span>
+                          </span>
+                          <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded bg-amber-500/10 group-hover:bg-amber-500 text-amber-300 group-hover:text-zinc-950 font-semibold text-[10px] transition border border-amber-500/20">
+                            <span>Select Account</span>
                             <ArrowRight className="h-2.5 w-2.5" />
                           </span>
                         </div>
@@ -266,11 +255,9 @@ export const LoginView: React.FC = () => {
                 })}
               </div>
 
-              <div className="mt-4 pt-3 border-t border-zinc-800 text-[11px] text-zinc-400 flex items-center justify-between">
-                <span>Default Password for all:</span>
-                <code className="bg-zinc-900 px-2 py-0.5 rounded border border-zinc-800 text-amber-300 font-mono">
-                  password123
-                </code>
+              <div className="mt-4 pt-3 border-t border-zinc-800 text-[11px] text-zinc-400 flex items-center space-x-2">
+                <ShieldCheck className="h-4 w-4 text-emerald-400 shrink-0" />
+                <span>Each team member uses their own private password. Sessions are never remembered on shared devices.</span>
               </div>
             </div>
           </div>
@@ -316,41 +303,6 @@ export const LoginView: React.FC = () => {
                   <Users className="h-3.5 w-3.5" />
                   <span>Register Predefined Role</span>
                 </button>
-              </div>
-
-              {/* Master Owner Quick Access Banner */}
-              <div className="mb-5 p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-transparent border border-amber-500/30">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-center space-x-3">
-                    <div className="h-10 w-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 font-bold text-sm shadow-sm shrink-0">
-                      AK
-                    </div>
-                    <div>
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm font-bold text-zinc-100">Ar. Aamir Khan</span>
-                        <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase tracking-wider">Master Owner</span>
-                      </div>
-                      <p className="text-xs text-zinc-400 font-mono">Ar.khanaamir@gmail.com</p>
-                    </div>
-                  </div>
-                  <button
-                    id="one-click-master-login-btn"
-                    type="button"
-                    onClick={async () => {
-                      setErrorMsg(null);
-                      setSubmitting(true);
-                      const res = await login('Ar.khanaamir@gmail.com', 'password123');
-                      if (!res.success) {
-                        setErrorMsg(res.error || 'Login failed');
-                        setSubmitting(false);
-                      }
-                    }}
-                    className="flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-zinc-950 text-xs font-bold shadow-md shadow-amber-500/20 transition active:scale-95 shrink-0"
-                  >
-                    <span>Instant Enter ERP</span>
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </button>
-                </div>
               </div>
 
               {/* Status & Feedback Alerts */}
@@ -406,18 +358,11 @@ export const LoginView: React.FC = () => {
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="block text-xs font-medium text-zinc-300">
-                        Security Password
+                        Account Password
                       </label>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPassword('password123');
-                          setSuccessMsg('Default password autofilled ("password123").');
-                        }}
-                        className="text-[11px] text-amber-400 hover:text-amber-300 transition"
-                      >
-                        Autofill Default Password
-                      </button>
+                      <span className="text-[11px] text-zinc-500">
+                        Private to each employee
+                      </span>
                     </div>
                     <div className="relative">
                       <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
@@ -426,7 +371,8 @@ export const LoginView: React.FC = () => {
                         type={showPassword ? 'text' : 'password'}
                         value={password}
                         onChange={e => setPassword(e.target.value)}
-                        placeholder="••••••••••••"
+                        placeholder="Enter your account password"
+                        autoComplete="new-password"
                         className="w-full rounded-xl border border-zinc-700 bg-zinc-900/90 pl-10 pr-10 py-2.5 text-xs text-zinc-100 placeholder-zinc-500 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 transition"
                         required
                       />
@@ -441,17 +387,12 @@ export const LoginView: React.FC = () => {
                   </div>
 
                   <div className="flex items-center justify-between text-xs pt-1">
-                    <label className="flex items-center space-x-2 text-zinc-400 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={rememberMe}
-                        onChange={e => setRememberMe(e.target.checked)}
-                        className="rounded border-zinc-700 bg-zinc-900 text-amber-500 focus:ring-0"
-                      />
-                      <span>Keep me signed in</span>
-                    </label>
-                    <span className="text-[11px] text-zinc-500">
-                      Encrypted Cloud Session
+                    <div className="flex items-center space-x-2 text-zinc-400">
+                      <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
+                      <span>Single-session sign-in • No password remembered</span>
+                    </div>
+                    <span className="text-[11px] text-zinc-500 font-mono">
+                      Isolated Auth
                     </span>
                   </div>
 
