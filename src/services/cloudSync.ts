@@ -61,28 +61,93 @@ export function sanitizeForFirestore<T>(data: T): T {
   return data;
 }
 
+const PENDING_WRITES_KEY = 'casabuild_pending_cloud_writes';
+
+export interface PendingCloudOperation {
+  collectionName: string;
+  id: string;
+  data?: any;
+  action: 'set' | 'delete';
+  timestamp: number;
+}
+
+export function getPendingWrites(): PendingCloudOperation[] {
+  try {
+    const raw = localStorage.getItem(PENDING_WRITES_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function savePendingWrites(queue: PendingCloudOperation[]) {
+  try {
+    localStorage.setItem(PENDING_WRITES_KEY, JSON.stringify(queue));
+  } catch {}
+}
+
+export function queuePendingWrite(op: PendingCloudOperation) {
+  const queue = getPendingWrites();
+  const filtered = queue.filter(item => !(item.collectionName === op.collectionName && item.id === op.id));
+  filtered.push(op);
+  savePendingWrites(filtered);
+}
+
+export async function flushPendingWrites(): Promise<number> {
+  const queue = getPendingWrites();
+  if (!queue.length) return 0;
+  let flushed = 0;
+  const remaining: PendingCloudOperation[] = [];
+
+  for (const op of queue) {
+    try {
+      const docRef = doc(db, op.collectionName, op.id);
+      if (op.action === 'set' && op.data) {
+        const sanitized = sanitizeForFirestore(op.data);
+        await setDoc(docRef, sanitized);
+      } else if (op.action === 'delete') {
+        await deleteDoc(docRef);
+      }
+      flushed++;
+    } catch {
+      remaining.push(op);
+    }
+  }
+
+  savePendingWrites(remaining);
+  return flushed;
+}
+
 /**
- * Save a single document to Firebase Firestore cloud database
+ * Save a single document to Firebase Firestore cloud database.
+ * Queues to offline persistence if network or cloud is temporarily unreachable.
  */
-export async function writeDocumentToCloud(collectionName: string, id: string, data: any): Promise<void> {
+export async function writeDocumentToCloud(collectionName: string, id: string, data: any): Promise<boolean> {
   try {
     const docRef = doc(db, collectionName, id);
     const sanitizedData = sanitizeForFirestore(data);
     await setDoc(docRef, sanitizedData);
-  } catch (error) {
-    handleFirestoreError(error, OperationType.WRITE, `${collectionName}/${id}`);
+    return true;
+  } catch (error: any) {
+    console.warn(`Cloud write queued for ${collectionName}/${id}:`, error?.message || error);
+    queuePendingWrite({ collectionName, id, data, action: 'set', timestamp: Date.now() });
+    return false;
   }
 }
 
 /**
- * Delete a single document from Firebase Firestore
+ * Delete a single document from Firebase Firestore.
+ * Queues to offline persistence if network or cloud is temporarily unreachable.
  */
-export async function deleteDocumentFromCloud(collectionName: string, id: string): Promise<void> {
+export async function deleteDocumentFromCloud(collectionName: string, id: string): Promise<boolean> {
   try {
     const docRef = doc(db, collectionName, id);
     await deleteDoc(docRef);
-  } catch (error) {
-    handleFirestoreError(error, OperationType.DELETE, `${collectionName}/${id}`);
+    return true;
+  } catch (error: any) {
+    console.warn(`Cloud delete queued for ${collectionName}/${id}:`, error?.message || error);
+    queuePendingWrite({ collectionName, id, action: 'delete', timestamp: Date.now() });
+    return false;
   }
 }
 
@@ -155,13 +220,13 @@ export function subscribeToAllCollections(
         collection(db, path),
         (snapshot) => {
           if (!snapshot.empty) {
-            const docsData = snapshot.docs.map(d => d.data());
+            const docsData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
             onUpdate({ [key]: docsData });
           }
         },
         (error) => {
           onError(error);
-          console.debug(`Firestore real-time sync notice for ${path}:`, error.message);
+          console.warn(`Firestore real-time sync notice for ${path}:`, error.message);
         }
       );
       unsubs.push(unsub);
@@ -188,9 +253,9 @@ export async function fetchFullCloudSnapshot(): Promise<Partial<CasabuildCloudSt
   const fetchCollection = async (path: string): Promise<any[]> => {
     try {
       const snap = await getDocs(collection(db, path));
-      return snap.docs.map(d => d.data());
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
     } catch (error) {
-      handleFirestoreError(error, OperationType.LIST, path);
+      console.warn(`Firestore snapshot read notice for ${path}:`, error);
       return [];
     }
   };

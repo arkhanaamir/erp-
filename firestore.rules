@@ -8,62 +8,86 @@ service cloud.firestore {
 
     // Projects directory
     match /projects/{projectId} {
-      allow read, write: if isValidId(projectId);
+      allow get: if isValidId(projectId);
+      allow list: if true;
+      allow write: if isValidId(projectId);
     }
 
     // Workers roster
     match /workers/{workerId} {
-      allow read, write: if isValidId(workerId);
+      allow get: if isValidId(workerId);
+      allow list: if true;
+      allow write: if isValidId(workerId);
     }
 
     // Attendance muster roll logs
     match /attendance/{attendanceId} {
-      allow read, write: if isValidId(attendanceId);
+      allow get: if isValidId(attendanceId);
+      allow list: if true;
+      allow write: if isValidId(attendanceId);
     }
 
     // Daily Site Reports (DSR)
     match /dailyReports/{reportId} {
-      allow read, write: if isValidId(reportId);
+      allow get: if isValidId(reportId);
+      allow list: if true;
+      allow write: if isValidId(reportId);
     }
 
     // Raw materials inventory
     match /materials/{materialId} {
-      allow read, write: if isValidId(materialId);
+      allow get: if isValidId(materialId);
+      allow list: if true;
+      allow write: if isValidId(materialId);
     }
 
     // Material Inward & Outward Transactions
     match /materialTransactions/{transactionId} {
-      allow read, write: if isValidId(transactionId);
+      allow get: if isValidId(transactionId);
+      allow list: if true;
+      allow write: if isValidId(transactionId);
     }
 
     // Site expense vouchers
     match /expenses/{expenseId} {
-      allow read, write: if isValidId(expenseId);
+      allow get: if isValidId(expenseId);
+      allow list: if true;
+      allow write: if isValidId(expenseId);
     }
 
     // Vendor and contractor ledgers
     match /vendors/{vendorId} {
-      allow read, write: if isValidId(vendorId);
+      allow get: if isValidId(vendorId);
+      allow list: if true;
+      allow write: if isValidId(vendorId);
     }
 
     // Quotes and BOQ estimates
     match /quotes/{quoteId} {
-      allow read, write: if isValidId(quoteId);
+      allow get: if isValidId(quoteId);
+      allow list: if true;
+      allow write: if isValidId(quoteId);
     }
 
     // Interior finishes and selections
     match /interiorSelections/{selectionId} {
-      allow read, write: if isValidId(selectionId);
+      allow get: if isValidId(selectionId);
+      allow list: if true;
+      allow write: if isValidId(selectionId);
     }
 
     // Site progress photo journal
     match /sitePhotos/{photoId} {
-      allow read, write: if isValidId(photoId);
+      allow get: if isValidId(photoId);
+      allow list: if true;
+      allow write: if isValidId(photoId);
     }
 
     // User profiles and employee registry
     match /users/{userId} {
-      allow read, write: if isValidId(userId);
+      allow get: if isValidId(userId);
+      allow list: if true;
+      allow write: if isValidId(userId);
     }
 
     // Connection testing endpoint

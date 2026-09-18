@@ -7,6 +7,7 @@ import {
   uploadAllToCloud,
   subscribeToAllCollections,
   fetchFullCloudSnapshot,
+  flushPendingWrites,
   CasabuildCloudState
 } from '../services/cloudSync';
 import {
@@ -46,7 +47,7 @@ interface CasabuildContextType {
   currentUser: UserProfile | null;
   isOwner: boolean;
   users: UserProfile[];
-  login: (email: string, password: string) => { success: boolean; error?: string };
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }> | { success: boolean; error?: string };
   registerUser: (newUser: Omit<UserProfile, 'id'>) => { success: boolean; error?: string };
   logout: () => void;
   updateUserProfile: (id: string, updates: Partial<UserProfile>) => void;
@@ -445,7 +446,23 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           setSitePhotos(updatedState.sitePhotos);
         }
         if (updatedState.users && updatedState.users.length > 0) {
-          setUsers(normalizeOwnerRules(updatedState.users));
+          const normalizedUsers = normalizeOwnerRules(updatedState.users);
+          setUsers(normalizedUsers);
+          setCurrentUser(prevUser => {
+            if (!prevUser) return null;
+            const updatedProfile = normalizedUsers.find(
+              u => u.id === prevUser.id || u.email.trim().toLowerCase() === prevUser.email.trim().toLowerCase()
+            );
+            if (updatedProfile) {
+              if (updatedProfile.disabled || updatedProfile.status === 'Disabled') {
+                logout();
+                return null;
+              }
+              setRoleState(updatedProfile.role);
+              return updatedProfile;
+            }
+            return prevUser;
+          });
         }
         setCloudSyncStatus('synced');
         setLastCloudSyncTime(new Date().toLocaleTimeString());
@@ -457,6 +474,40 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     );
 
     return () => unsubCollections();
+  }, []);
+
+  // High-frequency cloud sync pulse & offline write flush (every 10s + on focus/online)
+  useEffect(() => {
+    const pulseSync = async () => {
+      try {
+        const flushed = await flushPendingWrites();
+        if (flushed > 0) {
+          setLastCloudSyncTime(new Date().toLocaleTimeString());
+        }
+      } catch (e) {
+        console.debug('Cloud sync pulse notice:', e);
+      }
+    };
+
+    // 10-second high-frequency sync pulse
+    const pulseTimer = setInterval(pulseSync, 10000);
+
+    const handleReengage = () => {
+      if (document.visibilityState === 'visible') {
+        pulseSync();
+      }
+    };
+
+    window.addEventListener('visibilitychange', handleReengage);
+    window.addEventListener('focus', handleReengage);
+    window.addEventListener('online', pulseSync);
+
+    return () => {
+      clearInterval(pulseTimer);
+      window.removeEventListener('visibilitychange', handleReengage);
+      window.removeEventListener('focus', handleReengage);
+      window.removeEventListener('online', pulseSync);
+    };
   }, []);
 
   const signInWithGoogle = async () => {
@@ -599,9 +650,23 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   // Authentication & Profile Services
-  const login = (email: string, password: string): { success: boolean; error?: string } => {
+  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     const cleanEmail = (email || '').trim().toLowerCase();
-    const user = users.find(u => (u.email || '').trim().toLowerCase() === cleanEmail);
+    let user = users.find(u => (u.email || '').trim().toLowerCase() === cleanEmail);
+
+    // If account not found in local state, fetch live Firestore users (in case registered on another device)
+    if (!user) {
+      try {
+        const snap = await fetchFullCloudSnapshot();
+        if (snap.users && snap.users.length > 0) {
+          const cloudUsers = normalizeOwnerRules(snap.users);
+          setUsers(cloudUsers);
+          user = cloudUsers.find(u => (u.email || '').trim().toLowerCase() === cleanEmail);
+        }
+      } catch (err) {
+        console.debug('Cloud user lookup notice:', err);
+      }
+    }
 
     if (!user) {
       return {
@@ -630,6 +695,7 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     };
 
     setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+    writeDocumentToCloud('users', updatedUser.id, updatedUser);
     setCurrentUser(updatedUser);
     setRoleState(updatedUser.role);
 
@@ -712,6 +778,7 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     };
 
     setUsers(prev => [userToSave, ...prev]);
+    writeDocumentToCloud('users', userToSave.id, userToSave);
     setCurrentUser(userToSave);
     setRoleState(userToSave.role);
     return { success: true };
@@ -1188,9 +1255,21 @@ export const CasabuildProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   }, [projects, users, workers]);
 
   const restoreAllDeleted = () => {
-    setProjects(prev => prev.map(p => p.isDeleted ? { ...p, isDeleted: false } : p));
-    setUsers(prev => prev.map(u => u.isDeleted ? { ...u, isDeleted: false, disabled: false, status: 'Active' } : u));
-    setWorkers(prev => prev.map(w => w.isDeleted ? { ...w, isDeleted: false, disabled: false, status: 'Active' } : w));
+    setProjects(prev => {
+      const next = prev.map(p => p.isDeleted ? { ...p, isDeleted: false } : p);
+      next.filter(p => prev.find(old => old.id === p.id && old.isDeleted)).forEach(p => writeDocumentToCloud('projects', p.id, p));
+      return next;
+    });
+    setUsers(prev => {
+      const next = prev.map(u => u.isDeleted ? { ...u, isDeleted: false, disabled: false, status: 'Active' as const } : u);
+      next.filter(u => prev.find(old => old.id === u.id && old.isDeleted)).forEach(u => writeDocumentToCloud('users', u.id, u));
+      return next;
+    });
+    setWorkers(prev => {
+      const next = prev.map(w => w.isDeleted ? { ...w, isDeleted: false, disabled: false, status: 'Active' as const } : w);
+      next.filter(w => prev.find(old => old.id === w.id && old.isDeleted)).forEach(w => writeDocumentToCloud('workers', w.id, w));
+      return next;
+    });
   };
 
   const emptyRecycleBin = () => {

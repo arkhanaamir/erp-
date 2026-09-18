@@ -82,8 +82,8 @@ export const LoginView: React.FC = () => {
     }
 
     setSubmitting(true);
-    setTimeout(() => {
-      const res = login(email, password);
+    setTimeout(async () => {
+      const res = await login(email, password);
       if (!res.success) {
         setErrorMsg(res.error || 'Authentication failed. Please check credentials.');
         setSubmitting(false);
@@ -141,8 +141,8 @@ export const LoginView: React.FC = () => {
     setErrorMsg(null);
     setSuccessMsg(null);
     setSubmitting(true);
-    setTimeout(() => {
-      const res = login(user.email, user.password || 'password123');
+    setTimeout(async () => {
+      const res = await login(user.email, user.password || 'password123');
       if (!res.success) {
         setErrorMsg(res.error || 'Authentication failed.');
         setSubmitting(false);
@@ -336,10 +336,10 @@ export const LoginView: React.FC = () => {
                   <button
                     id="one-click-master-login-btn"
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
                       setErrorMsg(null);
                       setSubmitting(true);
-                      const res = login('Ar.khanaamir@gmail.com', 'password123');
+                      const res = await login('Ar.khanaamir@gmail.com', 'password123');
                       if (!res.success) {
                         setErrorMsg(res.error || 'Login failed');
                         setSubmitting(false);
